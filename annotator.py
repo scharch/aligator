@@ -1,0 +1,388 @@
+#!/usr/bin/env python3
+
+"""
+annotator.py
+
+This script takes assembled genomic contigs from the Ig loci and looks for and
+    annotates V/D/J/C genes based on comparison to a previous set of genomic
+    annotations from the same or a related species. Requires BLAST and pybedtools.
+
+Usage: annotator.py CONTIGS RSS12 RSS23 TARGETGENOME TARGETBED LOCUS [ --alleledb coding.fa --outgff annotations.gff --outfasta IgGenes.fa --blast blastn ]
+
+Options:
+   CONTIGS                    - Assembled genomic contigs to be annotated in fasta format.
+   RSS12                      - Predicted RSS12 sequences in bed format.
+   RSS23                      - Predicted RSS23 sequences in bed format.
+   TARGETGENOME               - The genomic contigs for comparison in fasta format.
+   TARGETBED                  - A bed file containing the annotations for the comparison.
+                                    Expects gene names in the format of "IGKV", "IGLJ",
+                                    "IGHCA", etc.
+   LOCUS                      - Which Ig locus is being annotated: H, K, or L.
+   --alleledb coding.fa       - An optional database of known alleles in the comparison if
+                                    the same naming convention is to be used. If not provided,
+                                    allele numbering will start at *02 for anything not
+                                    matching the reference.
+   --outgff annotations.gff   - Where to save the final annotations - will use GFF3 format.
+                                    [default: annotations.gff]
+   --outfasta IgGenes.fa      - Where to save the extracted sequences of the annotated genes.
+                                    [default: IgGenes.fa]
+   --blast blastn             - Path to the `blastn` executable. [Default: blastn]
+
+Created by Chaim A Schramm on 2019-07-16.
+Updated and documented by CA Schramm 2019-09-21.
+
+Copyright (c) 2019 Vaccine Research Center, National Institutes of Health, USA.
+All rights reserved.
+
+"""
+
+import sys, os, re, csv, shutil
+from docopt import docopt
+from pybedtools import BedTool
+from collections import defaultdict, Counter
+from Bio import BiopythonWarning
+import warnings
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
+from Bio.Seq import Seq
+
+find_path = re.match("(.+)/annotateIgLoci/annotator.py", sys.argv[0])
+if find_path:
+	SOURCE_DIR = find_path.group(1)
+	sys.path.append(SOURCE_DIR)
+	from annotateIgLoci import *
+else:
+	sys.exit( "Can't find the code directory, please try calling the script using the full absolute path." )
+
+
+def checkInvariants( align, gene ):
+	#remove gaps in reference (one at a time so we don't get tripped up by shifting indices)
+	gap = re.search( "-+", align['ref'] )
+	while (gap):
+		align['ref']  = align['ref'][0:gap.start()]  + align['ref'][gap.end():]
+		align['test'] = align['test'][0:gap.start()] + align['test'][gap.end():]
+		gap = re.search( "-+", align['ref'] )
+
+	#look up invariant positions in reference and check
+	invars = { "H":{ "V":{21:'C', 95:'C'}, "J":{6:'W'} },
+			   "K":{ "V":{22:'C', 87:'C'}, "J":{2:'F'} },
+			   "L":{ "V":{21:'C', 88:'C'}, "J":{2:'F'} } }
+
+	for pos in invars[ arguments['LOCUS'] ][ gene ]:
+		if align[ 'test' ][ pos ] != invars[arguments['LOCUS']][gene][pos]:
+			return False
+
+	return True
+
+
+
+def main():
+
+	# 0a. Make a temporary working directory
+	try:
+		os.makedirs( "annoTemp" )
+	except FileExistsError:
+		sys.exit( "Error: Are you trying to run multiple annotations at the same time?\n\tIf not, please remove existing 'annoTemp' directory and try again.")
+
+	# 0b. Prep output
+	sequences = []
+	gffhandle = open( arguments['--outgff'], 'w' )
+	gffwriter = csv.writer( gffhandle, delimiter="\t", lineterminator="\n" )
+
+
+	## THE PIPELINE GETS RUN SEPARATELY FOR EACH GENE IN THE LOCUS
+	for gene in evalues[ arguments['LOCUS'] ]:
+
+		# 1a. Generate a search database from target genome
+		targets     = BedTool( arguments['TARGETBED'] )
+		geneTargets = targets.filter( \
+					lambda x: f"IG{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name \
+					).sequence( fi=arguments['TARGETGENOME'],
+					fo=f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa",
+					 name=True, s=True)
+
+		# 1b. Run blast
+		blast2bed( arguments['--blast'], arguments['CONTIGS'],
+							f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa",
+							f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed",
+							evalue=evalues[arguments['LOCUS']][gene] )
+
+		# 1c. Uniquify the blast hits
+		if gene == "C":
+			#for constant regions, merge hits that might be separated by gaps in Ramesh assembly
+			#    This is safe because they are far apart --could probably do it for V, too
+			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( "annoTemp/rawMerge.bed" )
+		else:
+			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( "annoTemp/rawMerge.bed" )
+
+		# 1d. merge output is formatted incorrectly when using the -s flag; fix it!
+		with open("annoTemp/rawMerge.bed", 'r') as inhandle:
+			reader = csv.reader(inhandle, delimiter="\t")
+			with open(f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" ,'w') as outhandle:
+				writer = csv.writer(outhandle, delimiter="\t")
+				for row in reader:
+					del( row[3] )
+					writer.writerow( row )
+		blastHits = BedTool( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+
+		# 2. Match hits with RSS predictions and do some sanity checking
+		if (arguments['LOCUS']=="H" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="K" and gene=="J") or (arguments['LOCUS']=="L" and gene=="V"):
+			rss23 = BedTool( arguments['RSS23'] )
+			selectedRSS = parseRSS( blastHits, rss23, gene )
+		else:
+			rss12 = BedTool( arguments['RSS12'] )
+			selectedRSS = parseRSS( blastHits, rss12, gene )
+
+		# 3. Check splice sites and recover exons
+		#       This will print an error message for incomplete hits
+		#       but I'm not trying to extend them, because blasting with multiple related genes should hopefully do the trick
+		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], arguments['CONTIGS'], gene, arguments['--blast'], arguments['--alleledb'] )
+
+
+		# 4a. Figure out existing naming
+		#     Go through raw databases and track the max known allele number for naming
+		alleleMax = defaultdict( int )
+		with open( f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa", 'r' ) as dbhandle:
+			for seq in SeqIO.parse( dbhandle, 'fasta' ):
+				info = re.match("(.+)\*(\d+)", seq.id)
+				if info:
+					if int(info.group(2))>alleleMax[info.group(1)]:
+						alleleMax[ info.group(1) ] = int( info.group(2) )
+				else:
+					print( f"Unrecognized gene name {seq.id}", file=sys.stderr )
+		if arguments['--alleledb'] is not None:
+			with open( arguments['--alleledb'], 'r' ) as dbhandle:
+				for seq in SeqIO.parse( dbhandle, 'fasta' ):
+					info = re.match("(.+?)(?:-.)?\*(\d+)(?:_.+)?", seq.id)
+					if info:
+						if info.group(1) in alleleMax and int(info.group(2))>alleleMax[info.group(1)]:
+							alleleMax[ info.group(1) ] = int( info.group(2) )
+					else:
+						print( f"Unrecognized gene name {seq.id}", file=sys.stderr )
+
+
+		novelG = 0
+		novelA = 0
+		funcNg = 0
+		funcNa = 0
+		used = defaultdict( int )
+		mutatedInvar = 0
+		stopCodon = 0
+
+		for b in blastHits:
+
+			localG   = False
+			localA   = False
+			isPseudo = False
+
+			# 4b. Find closest known sequence and name based on that
+			#     Unfortunately, the `merge` operation doesn't preserve the relationship between hit names
+			#         scores, and the possibility of the boundaries changing based on overlapping hits means
+			#         we can't easily go back to the raw BLAST output. So, get the final sequence from the
+			#         post-merge coordinates and BLAST again.
+
+			s = BedTool([b]).sequence(fi=arguments['CONTIGS'],fo="annoTemp/findGene.fa",s=True)
+			blastOnly(arguments['--blast'], "annoTemp/findGene.fa", f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa", "annoTemp/blastNames.txt", outformat="6 qseqid pident", minPctID='95' )
+			namelist = dict()
+			with open("annoTemp/blastNames.txt", 'r') as handle:
+				reader = csv.reader( handle, delimiter="\t")
+				for row in reader:
+					namelist[ row[0] ] = float(row[1])
+			if arguments['--alleledb'] is not None:
+				blastOnly(arguments['--blast'], "annoTemp/findGene.fa", arguments['--alleledb'], "annoTemp/blastCoding.txt", outformat="6 qseqid pident", minPctID='95' )
+				with open("annoTemp/blastCoding.txt", 'r') as handle:
+					reader = csv.reader( handle, delimiter="\t")
+					for row in reader:
+						if row[0] in namelist:
+							continue #use full-length identity, rather than coding region only identity if available
+						namelist[ row[0] ] = float(row[1])
+
+			if len(namelist) == 0:
+				novelG += 1
+				localG = True
+				#print( f"{str(b).strip()} looks like a novel gene, will be named IG{arguments['LOCUS']}{gene}-novel{novelG}" )
+				finalName = f"IG{arguments['LOCUS']}{gene}-novel{novelG}"
+			else:
+				byID   = sorted( list(namelist.keys()), key=lambda x: namelist[x], reverse=True )
+				geneID = re.sub( "(.+?)(?:-.)?\*\d+(?:_.+)?", "\\1", byID[0] )
+				used[ geneID ] += 1
+				if namelist[ byID[0] ] == 100:
+					#exact match
+					finalName = byID[0]
+					print(f"|\texact match for {finalName}\t|")
+				else:
+					#treat this as a new allele of a known gene
+					# TODO: check if there are multiple possible gene matches and assign to minimize conflicts with other genes???
+					novelA += 1
+					localA = True
+					alleleMax[ geneID ] += 1
+					finalName = geneID + f"*{alleleMax[geneID]:02}"
+
+			# 5. Check if this needs to be labeled as a pseudogene and write GFF output
+			#        I don't see an obvious way to mark genes with missing RSS as "ORF" using the Sequence Ontology as required by
+			#        GFF3 format, but --on the other hand-- if splice sites are conserved and there are no stop codons, then that
+			#        actually seems like pretty good evidence it's a functional gene and most likely a false negative of the RSS
+			#        prediction. So I'm going to override the Ramesh et al category definitions on this one.
+			stringhit = "\t".join(b[0:6])
+
+			if stringhit in spliceNotes:
+				print(f"{finalName}: {spliceNotes[stringhit]}")
+
+			if stringhit in geneStatus:
+				print(f"{finalName} marked as a pseudogene due to {geneStatus[stringhit]}")
+				isPseudo = True
+			else:
+
+				# 5a. Get spliced sequence to check for stop codons and invariant residues
+				splicedSeq = ""
+				if b.strand == "+":
+					for exon in mappedExons[ stringhit ]:
+						splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
+				else:
+					for exon in reversed(mappedExons[ stringhit ]):
+						rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
+						splicedSeq += str( Seq(rc).reverse_complement() )
+
+				# 5b. V gene: already in frame, translate and align
+				if gene == "V":
+
+					with warnings.catch_warnings():
+						warnings.simplefilter('ignore', BiopythonWarning)
+						splicedAA = Seq( splicedSeq ).translate(table=GAPPED_CODON_TABLE)
+					if "*" in splicedAA:
+						stopCodon += 1
+						print(f"{finalName} marked as a pseudogene due to an internal stop codon")
+						isPseudo = True
+					else:
+						with open( f"{SOURCE_DIR}/annotateIgLoci/IG{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
+							refSeq = SeqIO.read(refHandle, 'fasta')
+						align = quickAlign( refSeq, SeqRecord(splicedAA) )
+						invar = checkInvariants( align, gene )
+						if not invar:
+							mutatedInvar += 1
+							print(f"{finalName} marked as a pseudogene due to a missing invariant residue")
+							isPseudo =True
+
+				# 5c. J gene, align in nt space, then translate
+				elif gene == "J":
+					with open( f"{SOURCE_DIR}/annotateIgLoci/IG{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
+						refSeq = SeqIO.read(refHandle, 'fasta')
+					align = quickAlign( refSeq, SeqRecord(splicedSeq) )
+					with warnings.catch_warnings():
+						warnings.simplefilter('ignore', BiopythonWarning)
+						align['ref']  = str( Seq(align['ref'] ).translate(table=GAPPED_CODON_TABLE) )
+						align['test'] = str( Seq(align['test']).translate(table=GAPPED_CODON_TABLE) )
+					if "*" in align['test']:
+						stopCodon += 1
+						print(f"{finalName} marked as a pseudogene due to an internal stop codon")
+						isPseudo = True
+					else:
+						invar = checkInvariants( align, gene )
+						if not invar:
+							mutatedInvar += 1
+							print(f"{finalName} marked as a pseudogene due to a missing invariant residue")
+							isPseudo = True
+
+				# 5d. C gene, need to check secreted and membrane-bound CDSs separately.
+				#          Push each into frame and translate to check for stop codons.
+				elif gene == "C":
+					hasStop  = False
+					boundary = len(mappedExons[stringhit]) - 2
+					if "IGHCA" in finalName:
+						boundary = len(mappedExons[stringhit]) - 1 #only one M exon for IGA
+					toCheck = [ (0,boundary), (boundary, None) ]
+					for cds in toCheck:
+						checkSeq = "G"
+						if b.strand == "+":
+							for exon in mappedExons[ stringhit ][ cds[0]:cds[1] ]:
+								checkSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
+						else:
+							for exon in reversed(mappedExons[ stringhit ])[ cds[0]:cds[1] ]:
+								rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
+								checkSeq += str( Seq(rc).reverse_complement() )
+
+						with warnings.catch_warnings():
+							warnings.simplefilter('ignore', BiopythonWarning)
+							splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
+						if "*" in splicedAA:
+							stopCodon += 1
+							hasStop = True
+							print(f"{finalName} marked as a pseudogene due to an internal stop codon")
+							break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
+					if hasStop:
+						isPseudo = True
+			'''
+			# 5e. fix gene boundaries - TODO: need to handle negative strand, too
+			if gene == "V":
+				b[1] = mappedExons[0]
+				if stringhit in selectedRSS:
+					b[2] = selectedRSS[stringhit][0][2]
+				else:
+					b[2] = mappedExons[ len(mappedExons)-1 ][2]
+			elif gene == "D":
+				if stringhit in selectedRSS:
+					if len(selectedRSS[stringhit][0])==0:
+						b[1] = mappedExons[0][1]
+					else:
+						b[1] = selectedRSS[stringhit][0][1]
+					if len(selectedRSS[stringhit])>1:
+						b[2] = selectedRSS[stringhit][1][2]
+					else:
+						b[2] = mappedExons[0][2]
+			'''
+			# 5f. basic output
+			gType = f"IG_{gene}_gene"
+			eType = "exon"
+			if isPseudo:
+				gType = f"IG_{gene}_pseudogene"
+				eType = "pseudogenic_exon"
+
+			gffwriter.writerow( [ b[0], "annotateIgLoci", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalName}" ] )
+			for rss in selectedRSS.get( stringhit, [] ):
+				if len(rss)==0: continue # D gene with 3' RSS only
+				gffwriter.writerow( [ rss[0], "annotateIgLoci", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalName}" ] )
+			for exon in mappedExons.get( stringhit, [] ):
+				gffwriter.writerow( [ exon[0], "annotateIgLoci", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
+
+			# 5g. If functional - save a SeqRecord in addition to GFF
+			if not isPseudo:
+				if localG: funcNg += 1
+				if localA: funcNa += 1
+
+				#create and save a SeqRecord
+				sequences.append( SeqRecord( Seq(splicedSeq), id=finalName) )
+
+		# 5h. Print some statistics
+		totals = Counter( geneStatus.values() )
+		print( f"IG{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
+		print( f"      {len(geneStatus)+stopCodon+mutatedInvar} are labeled as pseudogenes: {totals['no target CDS found']} without target CDSs, {totals['a bad splice donor']+totals['a bad splice acceptor']} bad splice sites,")
+		print( f"          {totals['an invalid start codon']} missing start codons, {stopCodon} internal stop codons, {mutatedInvar} mutated invariants.")
+		print( f"      Of {len(mappedExons)-len(geneStatus)-stopCodon-mutatedInvar} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
+		print(  "      Genes with more than 2 alleles found: " + ",".join([ g for g in used if used[g]>2 ]) + "\n" )
+
+
+	# 6. Finish outputs and clean up
+	gffhandle.close()
+	with open(arguments['--outfasta'], 'w') as fasta_handle:
+		SeqIO.write( sequences, fasta_handle, 'fasta' )
+
+	shutil.rmtree("annoTemp")
+
+
+if __name__ == '__main__':
+
+	arguments = docopt(__doc__)
+
+	if arguments['LOCUS'] not in ['H','K','L']:
+		sys.exit("Valid choices for LOCUS are H, K, or L only")
+
+	#log command line
+	logCmdLine(sys.argv)
+
+
+	evalues = { "H":{ "V":"1e-150", "D":"1e-20", "J":"1e-20", "C":"1e-100" },
+#	evalues = { "H":{ "V":"1e-150" },
+				"K":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" },
+				"L":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" } }
+
+	main()
