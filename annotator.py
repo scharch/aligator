@@ -111,19 +111,19 @@ def main():
 		if gene == "C":
 			#for constant regions, merge hits that might be separated by gaps in Ramesh assembly
 			#    This is safe because they are far apart --could probably do it for V, too
-			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( "annoTemp/rawMerge.bed" )
+			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
 		else:
-			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( "annoTemp/rawMerge.bed" )
+			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
 
-		# 1d. merge output is formatted incorrectly when using the -s flag; fix it!
-		with open("annoTemp/rawMerge.bed", 'r') as inhandle:
-			reader = csv.reader(inhandle, delimiter="\t")
-			with open(f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" ,'w') as outhandle:
-				writer = csv.writer(outhandle, delimiter="\t")
-				for row in reader:
-					del( row[3] )
-					writer.writerow( row )
-		blastHits = BedTool( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+		# # 1d. merge output is formatted incorrectly when using the -s flag; fix it!
+		# with open("annoTemp/rawMerge.bed", 'r') as inhandle:
+		# 	reader = csv.reader(inhandle, delimiter="\t")
+		# 	with open(f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" ,'w') as outhandle:
+		# 		writer = csv.writer(outhandle, delimiter="\t")
+		# 		for row in reader:
+		# 			del( row[3] )
+		# 			writer.writerow( row )
+		# blastHits = BedTool( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
 
 		# 2. Match hits with RSS predictions and do some sanity checking
 		if (arguments['LOCUS']=="H" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="K" and gene=="J") or (arguments['LOCUS']=="L" and gene=="V"):
