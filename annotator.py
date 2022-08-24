@@ -108,12 +108,16 @@ def main():
 							evalue=evalues[arguments['LOCUS']][gene] )
 
 		# 1c. Uniquify the blast hits
-		if gene == "C":
-			#for constant regions, merge hits that might be separated by gaps in Ramesh assembly
-			#    This is safe because they are far apart --could probably do it for V, too
-			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
-		else:
-			blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+		try:
+			if gene == "C":
+				#for constant regions, merge hits that might be separated by gaps in Ramesh assembly
+				#    This is safe because they are far apart --could probably do it for V, too
+				blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+			else:
+				blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+		except:
+			print(f"Warning: `bedtools merge` failed for IG{arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+			continue
 
 		# # 1d. merge output is formatted incorrectly when using the -s flag; fix it!
 		# with open("annoTemp/rawMerge.bed", 'r') as inhandle:
@@ -380,7 +384,7 @@ if __name__ == '__main__':
 	logCmdLine(sys.argv)
 
 
-	evalues = { "H":{ "V":"1e-150", "D":"1e-20", "J":"1e-20", "C":"1e-100" },
+	evalues = { "H":{ "V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-50" },
 #	evalues = { "H":{ "V":"1e-150" },
 				"K":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" },
 				"L":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" } }
