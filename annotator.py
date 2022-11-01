@@ -64,9 +64,9 @@ def checkInvariants( align, gene ):
 		gap = re.search( "-+", align['ref'] )
 
 	#look up invariant positions in reference and check
-	invars = { "H":{ "V":{21:'C', 95:'C'}, "J":{6:'W'} },
-			   "K":{ "V":{22:'C', 87:'C'}, "J":{2:'F'} },
-			   "L":{ "V":{21:'C', 88:'C'}, "J":{2:'F'} } }
+	invars = { "H":{ "V":{21:'C', 95:'C'}, "J":{10:'W'} },
+			   "K":{ "V":{22:'C', 87:'C'}, "J":{3:'F'} },
+			   "L":{ "V":{21:'C', 88:'C'}, "J":{3:'F'} } }
 
 	for pos in invars[ arguments['LOCUS'] ][ gene ]:
 		if align[ 'test' ][ pos ] != invars[arguments['LOCUS']][gene][pos]:
@@ -100,7 +100,7 @@ def main():
 					).sequence( fi=arguments['TARGETGENOME'],
 					fo=f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa",
 					 name=True, s=True)
-
+		
 		# 1b. Run blast
 		blast2bed( arguments['--blast'], arguments['CONTIGS'],
 							f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa",
@@ -136,13 +136,13 @@ def main():
 		else:
 			rss12 = BedTool( arguments['RSS12'] )
 			selectedRSS = parseRSS( blastHits, rss12, gene )
-
+	
 		# 3. Check splice sites and recover exons
 		#       This will print an error message for incomplete hits
 		#       but I'm not trying to extend them, because blasting with multiple related genes should hopefully do the trick
 		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], arguments['CONTIGS'], gene, arguments['--blast'], arguments['--alleledb'] )
 
-
+		
 		# 4a. Figure out existing naming
 		#     Go through raw databases and track the max known allele number for naming
 		alleleMax = defaultdict( int )
@@ -201,16 +201,16 @@ def main():
 							continue #use full-length identity, rather than coding region only identity if available
 						namelist[ row[0] ] = float(row[1])
 
-			if len(namelist) == 0:
+			if len(namelist) == 0: #if dictionary is empty for namelist then its a novel gene
 				novelG += 1
 				localG = True
 				#print( f"{str(b).strip()} looks like a novel gene, will be named IG{arguments['LOCUS']}{gene}-novel{novelG}" )
 				finalName = f"IG{arguments['LOCUS']}{gene}-novel{novelG}"
-			else:
+			else: #if it isnt novel sort names in dictionary
 				byID   = sorted( list(namelist.keys()), key=lambda x: namelist[x], reverse=True )
 				geneID = re.sub( "(.+?)(?:-.)?\*\d+(?:_.+)?", "\\1", byID[0] )
 				used[ geneID ] += 1
-				if namelist[ byID[0] ] == 100:
+				if namelist[ byID[0] ] == 100: #100 could the combination of blasthit, percentage identify, blast paramerter, allele frequency 
 					#exact match
 					finalName = byID[0]
 					print(f"|\texact match for {finalName}\t|")
@@ -228,7 +228,7 @@ def main():
 			#        actually seems like pretty good evidence it's a functional gene and most likely a false negative of the RSS
 			#        prediction. So I'm going to override the Ramesh et al category definitions on this one.
 			stringhit = "\t".join(b[0:6])
-
+		
 			if stringhit in spliceNotes:
 				print(f"{finalName}: {spliceNotes[stringhit]}")
 
@@ -295,26 +295,46 @@ def main():
 					if "IGHCA" in finalName:
 						boundary = len(mappedExons[stringhit]) - 1 #only one M exon for IGA
 					toCheck = [ (0,boundary), (boundary, None) ]
-					for cds in toCheck:
-						checkSeq = "G"
-						if b.strand == "+":
-							for exon in mappedExons[ stringhit ][ cds[0]:cds[1] ]:
-								checkSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
-						else:
-							for exon in reversed(mappedExons[ stringhit ])[ cds[0]:cds[1] ]:
-								rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
-								checkSeq += str( Seq(rc).reverse_complement() )
+					if len(mappedExons[stringhit]) == 1: #For light chains
+							checkSeq = BedTool.seq( (mappedExons[stringhit][0][0],int(mappedExons[stringhit][0][1]),int(mappedExons[stringhit][0][2])), arguments['CONTIGS'] ) #this needs to be fixed because exon is not defined outside fo the for loop
+							if b.strand=="-":
+								checkSeq = str( Seq(checkSeq).reverse_complement() ) 
+							checkSeq = "G" + checkSeq
+							with warnings.catch_warnings():
+								warnings.simplefilter('ignore', BiopythonWarning)
+								splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
+							if "*" in splicedAA:
+								stopCodon += 1
+								hasStop = True
+								print(f"{finalName} marked as a pseudogene due to an internal stop codon")
+								break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
 
-						with warnings.catch_warnings():
-							warnings.simplefilter('ignore', BiopythonWarning)
-							splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
-						if "*" in splicedAA:
-							stopCodon += 1
-							hasStop = True
-							print(f"{finalName} marked as a pseudogene due to an internal stop codon")
-							break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
-					if hasStop:
-						isPseudo = True
+					else:
+						#only loop if there are multiple exons found
+						for cds in toCheck:
+							checkSeq = "G"
+							if b.strand == "+":
+								for exon in mappedExons[ stringhit ][ cds[0]:cds[1] ]:
+									checkSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
+							else:
+								print( mappedExons[stringhit] )
+								print( reversed(mappedExons[stringhit]) )
+								for exon in reversed(mappedExons[ stringhit ])[ cds[0]:cds[1] ]:
+									rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
+									checkSeq += str( Seq(rc).reverse_complement() )
+
+							with warnings.catch_warnings():
+								warnings.simplefilter('ignore', BiopythonWarning)
+								splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
+							if "*" in splicedAA:
+								stopCodon += 1
+								hasStop = True
+								print(f"{finalName} marked as a pseudogene due to an internal stop codon")
+								break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
+
+							if hasStop:
+								isPseudo = True 
+
 			'''
 			# 5e. fix gene boundaries - TODO: need to handle negative strand, too
 			if gene == "V":
@@ -384,9 +404,9 @@ if __name__ == '__main__':
 	logCmdLine(sys.argv)
 
 
-	evalues = { "H":{ "V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-50" },
+	evalues = { "H":{ "V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-100" },
 #	evalues = { "H":{ "V":"1e-150" },
 				"K":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" },
-				"L":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" } }
+				"L":{ "V":"1e-20", "J":"1e-4", "C":"1e-20" } }
 
 	main()
