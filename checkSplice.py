@@ -20,7 +20,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 import re, sys
 
-
+#returns if there is a gap or not
 def gapFinder( exons, seqFile ):
 	for e in exons:
 		s = BedTool.seq( (e.chrom,e.start,e.stop), seqFile )
@@ -71,7 +71,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 	reasons = dict()
 	notes   = dict()
 	targetBed = BedTool(bedfile)
-
+	a = open("annoTemp/alignTest.txt",'w')
 	#iterate through hits
 	for h in hits:
 
@@ -91,7 +91,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 			blast2bed(blast_exec, codingSeq, "annoTemp/temp.fa", "annoTemp/temp.bed")
 			blastHits = BedTool("annoTemp/temp.bed")
 			for b in blastHits:
-				correctedName = re.sub( "(-...)-.", "\\1", b.chrom ) #occasional extra letters in coding database names for some reason
+				correctedName = re.sub( "(-...)-.", "\\1", b.chrom ) #?occasional extra letters in coding database names for some reason
 				correctedName = re.sub( "\*\d\d", "*01", correctedName ) #change allele designation to 01 to match targetBed
 				exons = targetBed.filter( lambda x: x.name == correctedName + " CDS" ).saveas()
 				if len(exons) > 0:
@@ -110,6 +110,11 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		with open("annoTemp/ref.fa",'r') as handle:
 			refSeq = SeqIO.read(handle, "fasta")
 		align = quickAlign(refSeq, testSeq)
+		if gene == 'C':
+			for seq in align:
+				print(f">{h.name}-{seq}\n{align[seq]}\n", file=a)
+
+
 
 		#make sure the feature numbering corresponds to the extracted sequence
 		#    by rev-comp-ing if necessary and subtracting off the start position
@@ -144,13 +149,18 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		# also check if the ends of the alignment are missing
 		incomplete5 = False
 		incomplete3 = False
+		missingExons = []
 		for i in range(len(finalExons)):
-			if i > 0:
+
+			if i > 0: #C acceptor handled below
 				acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
+				if re.match("IGHC",h.name):
+					print(f"{h.name}, exon {i} ACCEPTOR: start position in alignment is {posDict[finalExons[i].start]['align']}")
+					print(f"{align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]}")
 				if not acceptor.endswith("AG"):
 					pseudo = True
 					reasons[ stringhit ] = "a bad splice acceptor"
-					break
+					#break
 
 			if posDict[ finalExons[i].start ]['gap']:
 				if i==0:
@@ -159,8 +169,11 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 				else:
 					notes[ stringhit ] = f"splice acceptor in alignment gap in exon {i+1}"
 
-			if i < len(finalExons)-1:
+			if i < len(finalExons)-1: #J donor handled below
 				donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
+				if re.match("IGHC",h.name):
+					print(f"{h.name}, exon {i} DONOR: end position in alignment is {posDict[finalExons[i].stop]['align']}")
+					print(f"{align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+ 10]}")
 				if not donor.startswith("GT"):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
@@ -168,7 +181,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 							#assume a stop codon at an exon boundary is always CHS...
 							pseudo = True
 							reasons[ stringhit ] = "a bad splice donor"
-							break
+							#break
 
 			if posDict[ finalExons[i].stop ]['gap']:
 				if i==len(finalExons)-1:
@@ -177,9 +190,13 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 				else:
 					notes[ stringhit ] = f"splice donor in alignment gap in exon {i+1}"
 
+
 		# update coordinates/names to contig being annotated
 		mapped = finalExons.each( mapExons, posDict, h ).saveas()
 		mapped = mapped.sort() #in case h is negative strand
+
+		#remove exons that are empty
+		mapped = [ mapped[i] for i in range(len(mapped)) if mapped[i].stop - mapped[i].start > 1 ]
 
 		#J and C: extract post/pre nt to verify splicing
 		#  but don't bother if we've already marked the ends as missing
