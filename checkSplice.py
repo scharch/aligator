@@ -154,7 +154,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i > 0: #C acceptor handled below
 				acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if re.match("IGHC",h.name):
+				if re.match("TRAC",h.name):
 					print(f"{h.name}, exon {i} ACCEPTOR: start position in alignment is {posDict[finalExons[i].start]['align']}")
 					print(f"{align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]}")
 				if not acceptor.endswith("AG"):
@@ -171,7 +171,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i < len(finalExons)-1: #J donor handled below
 				donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if re.match("IGHC",h.name):
+				if re.match("TRAC",h.name):
 					print(f"{h.name}, exon {i} DONOR: end position in alignment is {posDict[finalExons[i].stop]['align']}")
 					print(f"{align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+ 10]}")
 				if not donor.startswith("GT"):

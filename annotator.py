@@ -64,9 +64,12 @@ def checkInvariants( align, gene ):
 		gap = re.search( "-+", align['ref'] )
 
 	#look up invariant positions in reference and check
-	invars = { "H":{ "V":{21:'C', 95:'C'}, "J":{10:'W'} },
-			   "K":{ "V":{22:'C', 87:'C'}, "J":{3:'F'} },
-			   "L":{ "V":{21:'C', 88:'C'}, "J":{3:'F'} } }
+	invars = { "IGH":{ "V":{21:'C', 95:'C'}, "J":{10:'W'} },
+			   "IGK":{ "V":{22:'C', 87:'C'}, "J":{3:'F'} },
+			   "IGL":{ "V":{21:'C', 88:'C'}, "J":{3:'F'} },
+			   "TRA":{ "V":{21:'C', 87:'C'}, "J":{12:'F'} },
+			   "TRB":{"V":{22:'C', 90:'C'}, "J":{6:'F'} }}
+
 
 	for pos in invars[ arguments['LOCUS'] ][ gene ]:
 		if align[ 'test' ][ pos ] != invars[arguments['LOCUS']][gene][pos]:
@@ -96,15 +99,15 @@ def main():
 		# 1a. Generate a search database from target genome
 		targets     = BedTool( arguments['TARGETBED'] )
 		geneTargets = targets.filter( \
-					lambda x: f"IG{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name \
+					lambda x: f"{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name \
 					).sequence( fi=arguments['TARGETGENOME'],
-					fo=f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa",
+					fo=f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
 					 name=True, s=True)
 		
 		# 1b. Run blast
 		blast2bed( arguments['--blast'], arguments['CONTIGS'],
-							f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa",
-							f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed",
+							f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
+							f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed",
 							evalue=evalues[arguments['LOCUS']][gene] )
 
 		# 1c. Uniquify the blast hits
@@ -112,11 +115,11 @@ def main():
 			if gene == "C":
 				#for constant regions, merge hits that might be separated by gaps in Ramesh assembly
 				#    This is safe because they are far apart --could probably do it for V, too
-				blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+				blastHits = BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
 			else:
-				blastHits = BedTool( f"annoTemp/rawHits_IG{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
+				blastHits = BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
 		except:
-			print(f"Warning: `bedtools merge` failed for IG{arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+			print(f"Warning: `bedtools merge` failed for {arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
 			continue
 
 		# # 1d. merge output is formatted incorrectly when using the -s flag; fix it!
@@ -130,12 +133,22 @@ def main():
 		# blastHits = BedTool( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
 
 		# 2. Match hits with RSS predictions and do some sanity checking
-		if (arguments['LOCUS']=="H" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="K" and gene=="J") or (arguments['LOCUS']=="L" and gene=="V"):
+		if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
 			rss23 = BedTool( arguments['RSS23'] )
-			selectedRSS = parseRSS( blastHits, rss23, gene )
+			selectedRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+		elif (arguments['LOCUS']=='TRB' and gene =='D'):
+			#5' RSS12
+			rss12 = BedTool( arguments['RSS12'] )
+			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+
+			#3' RS23
+			rss23 = BedTool( arguments['RSS23'] )
+			tempRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+			for hit in tempRSS:
+				selectedRSS[ hit ].append(tempRSS[hit][1])
 		else:
 			rss12 = BedTool( arguments['RSS12'] )
-			selectedRSS = parseRSS( blastHits, rss12, gene )
+			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
 	
 		# 3. Check splice sites and recover exons
 		#       This will print an error message for incomplete hits
@@ -146,7 +159,7 @@ def main():
 		# 4a. Figure out existing naming
 		#     Go through raw databases and track the max known allele number for naming
 		alleleMax = defaultdict( int )
-		with open( f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa", 'r' ) as dbhandle:
+		with open( f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa", 'r' ) as dbhandle:
 			for seq in SeqIO.parse( dbhandle, 'fasta' ):
 				info = re.match("(.+)\*(\d+)", seq.id)
 				if info:
@@ -186,7 +199,7 @@ def main():
 			#         post-merge coordinates and BLAST again.
 
 			s = BedTool([b]).sequence(fi=arguments['CONTIGS'],fo="annoTemp/findGene.fa",s=True)
-			blastOnly(arguments['--blast'], "annoTemp/findGene.fa", f"annoTemp/targets_IG{arguments['LOCUS']}{gene}.fa", "annoTemp/blastNames.txt", outformat="6 qseqid pident", minPctID='95' )
+			blastOnly(arguments['--blast'], "annoTemp/findGene.fa", f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa", "annoTemp/blastNames.txt", outformat="6 qseqid pident", minPctID='95' )
 			namelist = dict()
 			with open("annoTemp/blastNames.txt", 'r') as handle:
 				reader = csv.reader( handle, delimiter="\t")
@@ -205,7 +218,7 @@ def main():
 				novelG += 1
 				localG = True
 				#print( f"{str(b).strip()} looks like a novel gene, will be named IG{arguments['LOCUS']}{gene}-novel{novelG}" )
-				finalName = f"IG{arguments['LOCUS']}{gene}-novel{novelG}"
+				finalName = f"{arguments['LOCUS']}{gene}-novel{novelG}"
 			else: #if it isnt novel sort names in dictionary
 				byID   = sorted( list(namelist.keys()), key=lambda x: namelist[x], reverse=True )
 				geneID = re.sub( "(.+?)(?:-.)?\*\d+(?:_.+)?", "\\1", byID[0] )
@@ -258,7 +271,7 @@ def main():
 						print(f"{finalName} marked as a pseudogene due to an internal stop codon")
 						isPseudo = True
 					else:
-						with open( f"{SOURCE_DIR}/annotateIgLoci/IG{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
+						with open( f"{SOURCE_DIR}/annotateIgLoci/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
 							refSeq = SeqIO.read(refHandle, 'fasta')
 						align = quickAlign( refSeq, SeqRecord(splicedAA) )
 						invar = checkInvariants( align, gene )
@@ -269,7 +282,7 @@ def main():
 
 				# 5c. J gene, align in nt space, then translate
 				elif gene == "J":
-					with open( f"{SOURCE_DIR}/annotateIgLoci/IG{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
+					with open( f"{SOURCE_DIR}/annotateIgLoci/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
 						refSeq = SeqIO.read(refHandle, 'fasta')
 					align = quickAlign( refSeq, SeqRecord(splicedSeq) )
 					with warnings.catch_warnings():
@@ -292,7 +305,7 @@ def main():
 				elif gene == "C":
 					hasStop  = False
 					boundary = len(mappedExons[stringhit]) - 2
-					if "IGHCA" in finalName:
+					if "IGHCA" in finalName: #?
 						boundary = len(mappedExons[stringhit]) - 1 #only one M exon for IGA
 					toCheck = [ (0,boundary), (boundary, None) ]
 					if len(mappedExons[stringhit]) == 1: #For light chains
@@ -317,9 +330,7 @@ def main():
 								for exon in mappedExons[ stringhit ][ cds[0]:cds[1] ]:
 									checkSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
 							else:
-								print( mappedExons[stringhit] )
-								print( reversed(mappedExons[stringhit]) )
-								for exon in reversed(mappedExons[ stringhit ])[ cds[0]:cds[1] ]:
+								for exon in list(reversed(mappedExons[ stringhit ]))[ cds[0]:cds[1] ]:
 									rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
 									checkSeq += str( Seq(rc).reverse_complement() )
 
@@ -355,10 +366,10 @@ def main():
 						b[2] = mappedExons[0][2]
 			'''
 			# 5f. basic output
-			gType = f"IG_{gene}_gene"
+			gType = f"{arguments['LOCUS']}_{gene}_gene" 
 			eType = "exon"
 			if isPseudo:
-				gType = f"IG_{gene}_pseudogene"
+				gType = f"{arguments['LOCUS']}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
 
 			gffwriter.writerow( [ b[0], "annotateIgLoci", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalName}" ] )
@@ -378,7 +389,7 @@ def main():
 
 		# 5h. Print some statistics
 		totals = Counter( geneStatus.values() )
-		print( f"IG{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
+		print( f"{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
 		print( f"      {len(geneStatus)+stopCodon+mutatedInvar} are labeled as pseudogenes: {totals['no target CDS found']} without target CDSs, {totals['a bad splice donor']+totals['a bad splice acceptor']} bad splice sites,")
 		print( f"          {totals['an invalid start codon']} missing start codons, {stopCodon} internal stop codons, {mutatedInvar} mutated invariants.")
 		print( f"      Of {len(mappedExons)-len(geneStatus)-stopCodon-mutatedInvar} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
@@ -397,16 +408,18 @@ if __name__ == '__main__':
 
 	arguments = docopt(__doc__)
 
-	if arguments['LOCUS'] not in ['H','K','L']:
-		sys.exit("Valid choices for LOCUS are H, K, or L only")
+	if arguments['LOCUS'] not in ['IGH','IGK','IGL','TRA','TRB']:
+		sys.exit("Valid choices for LOCUS are IGH, IGK, IGL,TRA, or TRB only")
 
 	#log command line
 	logCmdLine(sys.argv)
 
 
-	evalues = { "H":{ "V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-100" },
+	evalues = { "IGH":{ "V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-100" },
 #	evalues = { "H":{ "V":"1e-150" },
-				"K":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" },
-				"L":{ "V":"1e-20", "J":"1e-4", "C":"1e-20" } }
+				"IGK":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" },
+				"IGL":{ "V":"1e-20", "J":"1e-4", "C":"1e-20" },
+				"TRA":{"V":"1e-100", "J":"1e-20", "C":"1e-100" },
+				"TRB":{"V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-100" }}
 
 	main()
