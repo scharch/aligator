@@ -1,20 +1,22 @@
 
 from collections import defaultdict
 
-def parseRSS( blastHits, rssPreds, gene ):
+def parseRSS( blastHits, rssPreds, rssType, gene, locus ):
 
 	overlap = blastHits.window( rssPreds, w=10 )
 	possible = defaultdict( dict )
 
 	for predicted in overlap:
-
+		
 		strpred = "\t".join(predicted[0:6])
 
-		if gene=="J" or gene =="D":
+		if gene=="J" or (gene=='D' and locus == 'IGH') or (gene =="D" and rssType == 'rss12' and locus == 'TRB'):
 			#looking at 5p end
 
 			if '5p' not in possible[ strpred ]:
 				possible[ strpred ][ '5p' ] = []
+				if locus=="TRB" and gene=="D":
+					possible[ strpred ][ '3p' ] = []
 
 			if predicted[5] == "+":
 				#plus strand so RSS is minus; also check boundaries
@@ -27,11 +29,13 @@ def parseRSS( blastHits, rssPreds, gene ):
 						#looks good - save it
 						possible[ strpred ][ '5p' ].append( predicted[6:12] )
 
-		if gene=="V" or gene=="D":
+		if gene=="V" or (gene=='D' and locus == 'IGH') or (gene =="D" and rssType == 'rss23' and locus == 'TRB'):
 			#looking at 3p end
 
 			if '3p' not in possible[ strpred ]:
 				possible[ strpred ][ '3p' ] = []
+				if locus=="TRB" and gene=="D":
+					possible[ strpred ][ '5p' ] = []
 
 			if predicted[5] == "+":
 				#plus strand so RSS is also plus; also check boundaries
@@ -78,5 +82,5 @@ def parseRSS( blastHits, rssPreds, gene ):
 		except KeyError:
 			#this just means there was no predicted RSSs for this hit, don't worry about it
 			pass
-
+	
 	return results
