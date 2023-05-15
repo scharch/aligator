@@ -10,8 +10,6 @@ def blastOnly(blast, subject, query, outfile, outformat="6 sseqid sstart send qs
 						"-reward", '1', "-word_size", '7', "-max_target_seqs", '100', '-max_hsps', '100', \
 						'-evalue', evalue, '-perc_identity', minPctID ] )
 
-
-
 def blast2bed(blast, subject, query, outfile, evalue="1e-20"):
 
 	blastOnly(blast, subject, query, "annoTemp/blast.temp", evalue=evalue)
@@ -21,7 +19,6 @@ def blast2bed(blast, subject, query, outfile, evalue="1e-20"):
 		reader = csv.reader(input, delimiter="\t")
 
 		for row	 in reader:
-
 			#make sure start and stop are in correct order for minus strand hits
 			if int(row[2]) < int(row[1]):
 				temp = row[1]

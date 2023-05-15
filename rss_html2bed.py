@@ -38,7 +38,7 @@ import glob, re, sys, csv
 
 
 def main():
-	for locus in ("IGH","IGK","IGL"):
+	for locus in ("TRB","IGH","IGL","IGK","TRA"):
 		for rss in ("RSS12","RSS23"):
 
 			data = []

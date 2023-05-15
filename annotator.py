@@ -64,7 +64,7 @@ def checkInvariants( align, gene ):
 		gap = re.search( "-+", align['ref'] )
 
 	#look up invariant positions in reference and check
-	invars = { "IGH":{ "V":{21:'C', 95:'C'}, "J":{10:'W'} },
+	invars = { "IGH":{ "V":{21:'C', 95:'C'}, "J":{6:'W'} },
 			   "IGK":{ "V":{22:'C', 87:'C'}, "J":{3:'F'} },
 			   "IGL":{ "V":{21:'C', 88:'C'}, "J":{3:'F'} },
 			   "TRA":{ "V":{21:'C', 87:'C'}, "J":{12:'F'} },
@@ -94,7 +94,12 @@ def main():
 
 
 	## THE PIPELINE GETS RUN SEPARATELY FOR EACH GENE IN THE LOCUS
-	for gene in evalues[ arguments['LOCUS'] ]:
+#	for gene in evalues[ arguments['LOCUS'] ]:
+	for gene in evalues:
+
+		#slight kludge
+		if gene == "D" and not arguments['LOCUS'] in ['IGH','TRB']:
+			continue
 
 		# 1a. Generate a search database from target genome
 		targets     = BedTool( arguments['TARGETBED'] )
@@ -108,29 +113,46 @@ def main():
 		blast2bed( arguments['--blast'], arguments['CONTIGS'],
 							f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
 							f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed",
-							evalue=evalues[arguments['LOCUS']][gene] )
+							evalue=evalues[gene] )
 
 		# 1c. Uniquify the blast hits
-		try:
-			if gene == "C":
-				#for constant regions, merge hits that might be separated by gaps in Ramesh assembly
-				#    This is safe because they are far apart --could probably do it for V, too
-				blastHits = BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=2500, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
-			else:
-				blastHits = BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
-		except:
-			print(f"Warning: `bedtools merge` failed for {arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
-			continue
+		#for constant regions the main concern is assembly gaps that might cause each domain to come up as separate blast hit.
+		#    Since genes are much further apart than exons, we can use bedtools merge to account for this
+		if gene == "C":
+			try:
+				blastHits = BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
+			except:
+				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+				continue
+		else:
+			# For V genes, on the other hand, the most important thing is to get a template of the right family
+			#    otherwise, the L-part1 exon might get lost and/or the splice sites might not align properly.
+			# To account for this, we use bedtools cluster to group overlapping hits, sort by length and then take
+			#    the longest, highest scoring, match for downstream processing.
+			# This is really mostly relevant for V genes, but including D and J here for now, as well.
+			try:
+				BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).cluster(s=True).saveas( f"annoTemp/clusteredHits_{arguments['LOCUS']}{gene}.bed" )
+				#Parse though unique hits output for max score
+				with open(f"annoTemp/clusteredHits_{arguments['LOCUS']}{gene}.bed",'r') as input:
+					maxBlastHits = list()
+					dic = defaultdict(list)
+					reader = csv.reader(input, delimiter="\t")
+					for row in reader:
+						row[6]=int(row[6])					
+						x = row[6]
+						dic[x].append(row)
+				for clust in dic.values():
+					sortedHits=sorted( clust,reverse=True, key=lambda r: (int(r[2])-int(r[1]), float(r[4])) )#sort blasthits in descending order first by length then by score
+					maxBlastHits.append(sortedHits[0]) #append first hit from each dictionary list to maxBlastHits list 
+				with open(f"annoTemp/maxBlastHits_{arguments['LOCUS']}{gene}.bed", 'w') as output:
+					writer = csv.writer(output, delimiter="\t")
+					for m in sorted( maxBlastHits, key=lambda r: (r[0],r[1]) ):
+						writer.writerow(m[0:6])
+				blastHits =BedTool(f"annoTemp/maxBlastHits_{arguments['LOCUS']}{gene}.bed")
+			except:
+				print(f"Warning: `bedtools cluster` failed for {arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+				continue							
 
-		# # 1d. merge output is formatted incorrectly when using the -s flag; fix it!
-		# with open("annoTemp/rawMerge.bed", 'r') as inhandle:
-		# 	reader = csv.reader(inhandle, delimiter="\t")
-		# 	with open(f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" ,'w') as outhandle:
-		# 		writer = csv.writer(outhandle, delimiter="\t")
-		# 		for row in reader:
-		# 			del( row[3] )
-		# 			writer.writerow( row )
-		# blastHits = BedTool( f"annoTemp/uniqueHits_IG{arguments['LOCUS']}{gene}.bed" )
 
 		# 2. Match hits with RSS predictions and do some sanity checking
 		if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
@@ -155,7 +177,6 @@ def main():
 		#       but I'm not trying to extend them, because blasting with multiple related genes should hopefully do the trick
 		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], arguments['CONTIGS'], gene, arguments['--blast'], arguments['--alleledb'] )
 
-		
 		# 4a. Figure out existing naming
 		#     Go through raw databases and track the max known allele number for naming
 		alleleMax = defaultdict( int )
@@ -262,7 +283,6 @@ def main():
 
 				# 5b. V gene: already in frame, translate and align
 				if gene == "V":
-
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
 						splicedAA = Seq( splicedSeq ).translate(table=GAPPED_CODON_TABLE)
@@ -415,11 +435,6 @@ if __name__ == '__main__':
 	logCmdLine(sys.argv)
 
 
-	evalues = { "IGH":{ "V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-100" },
-#	evalues = { "H":{ "V":"1e-150" },
-				"IGK":{ "V":"1e-100", "J":"1e-20", "C":"1e-100" },
-				"IGL":{ "V":"1e-20", "J":"1e-4", "C":"1e-20" },
-				"TRA":{"V":"1e-100", "J":"1e-20", "C":"1e-100" },
-				"TRB":{"V":"1e-50", "D":"1e-10", "J":"1e-10", "C":"1e-100" }}
+	evalues = { "V":"1e-20", "D":"1e-10", "J":"1e-10", "C":"1e-100" }
 
 	main()

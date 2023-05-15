@@ -23,7 +23,7 @@ import re, sys
 #returns if there is a gap or not
 def gapFinder( exons, seqFile ):
 	for e in exons:
-		s = BedTool.seq( (e.chrom,e.start,e.stop), seqFile )
+		s = BedTool.seq( (e.chrom,e.start,e.stop), seqFile ).upper()
 		#don't think it pays to worry about gaps of 1 or 2 bases, arbitrarily setting threshold at 10 bases
 		if "NNNNNNNNNN" in s:
 			return True
@@ -71,7 +71,6 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 	reasons = dict()
 	notes   = dict()
 	targetBed = BedTool(bedfile)
-	a = open("annoTemp/alignTest.txt",'w')
 	#iterate through hits
 	for h in hits:
 
@@ -110,9 +109,6 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		with open("annoTemp/ref.fa",'r') as handle:
 			refSeq = SeqIO.read(handle, "fasta")
 		align = quickAlign(refSeq, testSeq)
-		if gene == 'C':
-			for seq in align:
-				print(f">{h.name}-{seq}\n{align[seq]}\n", file=a)
 
 
 
@@ -154,8 +150,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i > 0: #C acceptor handled below
 				acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-
-				if not acceptor.endswith("AG"):
+				if not acceptor.endswith("AG") or acceptor.endswith("AC"):
 					pseudo = True
 					reasons[ stringhit ] = "a bad splice acceptor"
 					#break
@@ -169,8 +164,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i < len(finalExons)-1: #J donor handled below
 				donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-
-				if not donor.startswith("GT"):
+				if not (donor.startswith("GT") or donor.startswith("GC")):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
 						if not (gene=="C" and Seq(donor).translate().startswith("*")):
