@@ -7,6 +7,7 @@ from Bio import SeqIO
 from checkSplice import checkSplice
 from parseRSS import parseRSS
 from blast2bed import blast2bed, blastOnly
+from parseTRA import parseTRA
 
 ########## COMMAND LOGGING ############
 global printLog
