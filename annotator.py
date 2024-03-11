@@ -68,7 +68,8 @@ def checkInvariants( align, gene ):
 			   "IGK":{ "V":{22:'C', 87:'C'}, "J":{3:'F'} },
 			   "IGL":{ "V":{21:'C', 88:'C'}, "J":{3:'F'} },
 			   "TRA":{ "V":{21:'C', 87:'C'}, "J":{12:'F'} },
-			   "TRB":{"V":{22:'C', 90:'C'}, "J":{6:'F'} }}
+			   "TRB":{"V":{22:'C', 90:'C'}, "J":{6:'F'} },
+			   "TRD":{ "V":{22:'C', 91:'C'}, "J":{9:'F'}}}
 
 
 	for pos in invars[ arguments['LOCUS'] ][ gene ]:
@@ -89,7 +90,10 @@ def main():
 
 	# 0b. Prep output
 	sequences = []
-	gffhandle = open( arguments['--outgff'], 'w' )
+	mode = 'w'
+	if arguments['LOCUS'] == "TRD":
+		mode = "a"
+	gffhandle = open( arguments['--outgff'], mode )
 	gffwriter = csv.writer( gffhandle, delimiter="\t", lineterminator="\n" )
 
 
@@ -98,7 +102,7 @@ def main():
 	for gene in evalues:
 
 		#slight kludge
-		if gene == "D" and not arguments['LOCUS'] in ['IGH','TRB']:
+		if gene == "D" and not arguments['LOCUS'] in ['IGH','TRB','TRD']:
 			continue
 
 		# 1a. Generate a search database from target genome
@@ -153,24 +157,26 @@ def main():
 				print(f"Warning: `bedtools cluster` failed for {arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
 				continue							
 
+		#skip RSS block here, add code elsewhere in case there are no RSS
+		if arguments['RSS23'] or arguments['RSS12']:
+			# 2. Match hits with RSS predictions and do some sanity checking
+			if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRD" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
+				rss23 = BedTool( arguments['RSS23'] )
+				selectedRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+			elif (arguments['LOCUS'] in ['TRB','TRD'] and gene =='D'):
+				#5' RSS12
+				rss12 = BedTool( arguments['RSS12'] )
+				selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
 
-		# 2. Match hits with RSS predictions and do some sanity checking
-		if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
-			rss23 = BedTool( arguments['RSS23'] )
-			selectedRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
-		elif (arguments['LOCUS']=='TRB' and gene =='D'):
-			#5' RSS12
-			rss12 = BedTool( arguments['RSS12'] )
-			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
-
-			#3' RS23
-			rss23 = BedTool( arguments['RSS23'] )
-			tempRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
-			for hit in tempRSS:
-				selectedRSS[ hit ].append(tempRSS[hit][1])
-		else:
-			rss12 = BedTool( arguments['RSS12'] )
-			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+				#3' RS23
+				rss23 = BedTool( arguments['RSS23'] )
+				tempRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+				for hit in tempRSS:
+					selectedRSS[ hit ].append(tempRSS[hit][1])
+			else:
+				rss12 = BedTool( arguments['RSS12'] )
+				selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+				
 	
 		# 3. Check splice sites and recover exons
 		#       This will print an error message for incomplete hits
@@ -340,7 +346,6 @@ def main():
 								stopCodon += 1
 								hasStop = True
 								print(f"{finalName} marked as a pseudogene due to an internal stop codon")
-								break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
 
 					else:
 						#only loop if there are multiple exons found
@@ -414,22 +419,34 @@ def main():
 		print( f"          {totals['an invalid start codon']} missing start codons, {stopCodon} internal stop codons, {mutatedInvar} mutated invariants.")
 		print( f"      Of {len(mappedExons)-len(geneStatus)-stopCodon-mutatedInvar} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
 		print(  "      Genes with more than 2 alleles found: " + ",".join([ g for g in used if used[g]>2 ]) + "\n" )
-
-
+	
 	# 6. Finish outputs and clean up
 	gffhandle.close()
 	with open(arguments['--outfasta'], 'w') as fasta_handle:
 		SeqIO.write( sequences, fasta_handle, 'fasta' )
-
+		
+	if arguments['LOCUS'] == 'TRD':
+		newAnnotations = parseTRA(arguments['--outgff'])
+		newAnnotations.saveas(arguments['--outgff'])
 	shutil.rmtree("annoTemp")
+	if arguments['LOCUS'] == 'TRA':
+		new_arguments = "TRD"
+		arguments['LOCUS'] = new_arguments
+		arguments['--outfasta'] = f"TRGenes_TRD.fa"
+		main()
+
+		#call new script/function to identify TRD segment and exclude TRD call outside/TRA call inside of it.
+		#	Since you've already save the gff, probably just read it backin to start and overwrite with the cleaned up output
+		#   hypothesis: we can identify TRD segment from first functional TRDV to end of TRDC
+		#       ->will need error handling to decide what to do if one/both isn't identified
 
 
 if __name__ == '__main__':
 
 	arguments = docopt(__doc__)
 
-	if arguments['LOCUS'] not in ['IGH','IGK','IGL','TRA','TRB']:
-		sys.exit("Valid choices for LOCUS are IGH, IGK, IGL,TRA, or TRB only")
+	if arguments['LOCUS'] not in ['IGH','IGK','IGL','TRA','TRD','TRB']:
+		sys.exit("Valid choices for LOCUS are IGH, IGK, IGL,TRA,TRD, or TRB only")
 
 	#log command line
 	logCmdLine(sys.argv)
