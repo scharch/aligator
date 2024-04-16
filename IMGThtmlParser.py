@@ -62,6 +62,7 @@ for x in soup.select('div',attrs={'class':'features'}):
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 						start, end = map(int, splitStartEnd.split(".."))
 						rows.append([IMGTrefName, str(start - 1), str(end), geneName + " gene", "0", strand])
+			#fetch V,D,and J CDS
 			elif row[1] in ["L-PART1","V-EXON","D-REGION","J-REGION"]:
 				splitStartEnd = row[5]
 				if geneName in pseudoList:
@@ -71,8 +72,14 @@ for x in soup.select('div',attrs={'class':'features'}):
 						strand = "-"
 						splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 					start, end = map(int, splitStartEnd.split(".."))
-					rows.append([IMGTrefName, str(start - 1), str(end), geneName + " CDS", "0", strand])
-
+					if row[1] == "L-PART1":
+						rows.append([IMGTrefName, str(start - 1), str(end), geneName + " L-part1-exon", "0", strand])
+					if row[1] == "V-EXON":
+						rows.append([IMGTrefName, str(start - 1), str(end), geneName + " V-exon", "0", strand])
+					if row[1] == "D-REGION":
+						rows.append([IMGTrefName, str(start - 1), str(end), geneName + " D-exon", "0", strand])
+					if row[1] == "J-REGION":
+						rows.append([IMGTrefName, str(start - 1), str(end), geneName + " J-exon", "0", strand])
 		#check for RS regions of V-genes, D-genes, and J-genes, keep track of gene names
 		#If coordinates are "complement", strand should be "-"
 		#Subtract one from start and end coordinates
@@ -107,7 +114,7 @@ for x in soup.select('div',attrs={'class':'features'}):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 						start, end = map(int, splitStartEnd.split(".."))
-						rows.append([IMGTrefName, str(start - 1), str(end), geneName + " gene", "0", strand])
+						rows.append([IMGTrefName, str(start - 1), str(end), Cgene + " gene", "0", strand])
 				#fetch C-gene CDS
 				if re.match("CL",row[1]) or re.match("CH([1234S])",row[1]) or re.match("H(?:[12])?(?:-)?(?:CH)?",row[1]) or re.match("M(?:[12])?",row[1]) or re.match("EX([1234])",row[1]):
 					splitStartEnd = row[5]
@@ -115,7 +122,7 @@ for x in soup.select('div',attrs={'class':'features'}):
 						strand = "-"
 						splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 					start, end = map(int, splitStartEnd.split(".."))
-					rows.append([IMGTrefName, str(start - 1), str(end), geneName + " CDS", "0", strand])
+					rows.append([IMGTrefName, str(start - 1), str(end), f"{Cgene} {row[1]}-exon", "0", strand])
 
 		else:
 			#If V,D,J gene names have not been recorded, flag gene type, record start and end coordinates, set strand to default "+"
