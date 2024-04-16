@@ -297,7 +297,7 @@ def main():
 						print(f"{finalName} marked as a pseudogene due to an internal stop codon")
 						isPseudo = True
 					else:
-						with open( f"{SOURCE_DIR}/annotateIgLoci/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
+						with open( f"{SOURCE_DIR}/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
 							refSeq = SeqIO.read(refHandle, 'fasta')
 						align = quickAlign( refSeq, SeqRecord(splicedAA) )
 						invar = checkInvariants( align, gene )
@@ -308,7 +308,7 @@ def main():
 
 				# 5c. J gene, align in nt space, then translate
 				elif gene == "J":
-					with open( f"{SOURCE_DIR}/annotateIgLoci/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
+					with open( f"{SOURCE_DIR}/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
 						refSeq = SeqIO.read(refHandle, 'fasta')
 					align = quickAlign( refSeq, SeqRecord(splicedSeq) )
 					with warnings.catch_warnings():
@@ -378,12 +378,12 @@ def main():
 				gType = f"{arguments['LOCUS']}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
 
-			gffwriter.writerow( [ b[0], "annotateIgLoci", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalName}" ] )
+			gffwriter.writerow( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalName}" ] )
 			for rss in selectedRSS.get( stringhit, [] ):
 				if len(rss)==0: continue # D gene with 3' RSS only
-				gffwriter.writerow( [ rss[0], "annotateIgLoci", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalName}" ] )
+				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalName}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
-				gffwriter.writerow( [ exon[0], "annotateIgLoci", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
+				gffwriter.writerow( [ exon[0], "ALIGaToR", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
 
 			# 5f. Fasta output - functional coding sequences only
 			if not isPseudo:

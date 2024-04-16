@@ -43,7 +43,7 @@ def logCmdLine( command ):
 
     global printLog, logFile
 
-    logFile = "annotateIgLoci_command_history.log"
+    logFile = "aligator.log"
 
     for idx,arg in enumerate(command):
         if re.search("(\s|\*)", arg):
@@ -55,7 +55,7 @@ def logCmdLine( command ):
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     VERSION = p.communicate()[0].decode().strip()
 
-    logStatement = "\n%s -- annotateIgLoci %s run with command:\n\t%s\n" % (time.strftime("%c"), VERSION, " ".join(command))
+    logStatement = "\n%s -- ALIGaToR %s run with command:\n\t%s\n" % (time.strftime("%c"), VERSION, " ".join(command))
     print(logStatement, file=sys.stderr)
 
     try:
