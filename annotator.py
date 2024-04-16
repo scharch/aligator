@@ -7,21 +7,20 @@ This script takes assembled genomic contigs from the Ig loci and looks for and
     annotates V/D/J/C genes based on comparison to a previous set of genomic
     annotations from the same or a related species. Requires BLAST and pybedtools.
 
-Usage: annotator.py CONTIGS RSS12 RSS23 TARGETGENOME TARGETBED LOCUS [ --alleledb coding.fa --outgff annotations.gff --outfasta IgGenes.fa --blast blastn ]
+Usage: annotator.py CONTIGS RSS12 RSS23 LOCUS TARGETGENOME TARGETBED [ --alleledb coding.fa --outgff annotations.gff --outfasta IgGenes.fa --blast blastn ]
 
 Options:
    CONTIGS                    - Assembled genomic contigs to be annotated in fasta format.
    RSS12                      - Predicted RSS12 sequences in bed format.
    RSS23                      - Predicted RSS23 sequences in bed format.
+   LOCUS                      - Which locus is being annotated: IGH, IGK, IGL, TRA, or TRB.
    TARGETGENOME               - The genomic contigs for comparison in fasta format.
    TARGETBED                  - A bed file containing the annotations for the comparison.
                                     Expects gene names in the format of "IGKV", "IGLJ",
                                     "IGHCA", etc.
-   LOCUS                      - Which Ig locus is being annotated: H, K, or L.
-   --alleledb coding.fa       - An optional database of known alleles in the comparison if
-                                    the same naming convention is to be used. If not provided,
-                                    allele numbering will start at *02 for anything not
-                                    matching the reference.
+   --alleledb coding.fa       - An optional database of known coding alleles other than 
+                                    those in the reference genome. Will be used to match
+                                    and name discovered alleles.
    --outgff annotations.gff   - Where to save the final annotations - will use GFF3 format.
                                     [default: annotations.gff]
    --outfasta IgGenes.fa      - Where to save the extracted sequences of the annotated genes.
@@ -30,8 +29,10 @@ Options:
 
 Created by Chaim A Schramm on 2019-07-16.
 Updated and documented by CA Schramm 2019-09-21.
+Many updates and tweaks by Simone Olubo, 2022-2024.
+Clean up and tweaks by CA Schramm 2024-04-15.
 
-Copyright (c) 2019 Vaccine Research Center, National Institutes of Health, USA.
+Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
 """
@@ -46,13 +47,15 @@ from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
 
-find_path = re.match("(.+)/annotateIgLoci/annotator.py", sys.argv[0])
-if find_path:
-	SOURCE_DIR = find_path.group(1)
-	sys.path.append(SOURCE_DIR)
-	from annotateIgLoci import *
-else:
-	sys.exit( "Can't find the code directory, please try calling the script using the full absolute path." )
+SOURCE_DIR = os.environ.get('ALIGATOR_PATH', "")
+if not os.path.exists( SOURCE_DIR ):
+	find_path = re.match("(.+)/annotator.py", sys.argv[0])
+	if find_path:
+		SOURCE_DIR = find_path.group(1)
+	else:
+		sys.exit( "Can't find the code directory, please try calling the script using the full absolute path." )
+sys.path.append(f"{SOURCE_DIR}/..")
+from aligator import *
 
 
 def checkInvariants( align, gene ):
@@ -98,7 +101,6 @@ def main():
 
 
 	## THE PIPELINE GETS RUN SEPARATELY FOR EACH GENE IN THE LOCUS
-#	for gene in evalues[ arguments['LOCUS'] ]:
 	for gene in evalues:
 
 		#slight kludge
@@ -107,11 +109,11 @@ def main():
 
 		# 1a. Generate a search database from target genome
 		targets     = BedTool( arguments['TARGETBED'] )
-		geneTargets = targets.filter( \
-					lambda x: f"{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name \
-					).sequence( fi=arguments['TARGETGENOME'],
-					fo=f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
-					 name=True, s=True)
+		geneTargets = targets.filter(
+									lambda x: f"{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name
+									).sequence( fi=arguments['TARGETGENOME'],
+												fo=f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
+					 							name=True, s=True)
 		
 		# 1b. Run blast
 		blast2bed( arguments['--blast'], arguments['CONTIGS'],
@@ -157,26 +159,24 @@ def main():
 				print(f"Warning: `bedtools cluster` failed for {arguments['LOCUS']}{gene}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
 				continue							
 
-		#skip RSS block here, add code elsewhere in case there are no RSS
-		if arguments['RSS23'] or arguments['RSS12']:
-			# 2. Match hits with RSS predictions and do some sanity checking
-			if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRD" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
-				rss23 = BedTool( arguments['RSS23'] )
-				selectedRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
-			elif (arguments['LOCUS'] in ['TRB','TRD'] and gene =='D'):
-				#5' RSS12
-				rss12 = BedTool( arguments['RSS12'] )
-				selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+		# 2. Match hits with RSS predictions and do some sanity checking
+		if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRD" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
+			rss23 = BedTool( arguments['RSS23'] )
+			selectedRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+		elif (arguments['LOCUS'] in ['TRB','TRD'] and gene =='D'):
+			#5' RSS12
+			rss12 = BedTool( arguments['RSS12'] )
+			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
 
-				#3' RS23
-				rss23 = BedTool( arguments['RSS23'] )
-				tempRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
-				for hit in tempRSS:
-					selectedRSS[ hit ].append(tempRSS[hit][1])
-			else:
-				rss12 = BedTool( arguments['RSS12'] )
-				selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
-				
+			#3' RS23
+			rss23 = BedTool( arguments['RSS23'] )
+			tempRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+			for hit in tempRSS:
+				selectedRSS[ hit ].append(tempRSS[hit][1])
+		else:
+			rss12 = BedTool( arguments['RSS12'] )
+			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+			
 	
 		# 3. Check splice sites and recover exons
 		#       This will print an error message for incomplete hits
@@ -371,26 +371,7 @@ def main():
 							if hasStop:
 								isPseudo = True 
 
-			'''
-			# 5e. fix gene boundaries - TODO: need to handle negative strand, too
-			if gene == "V":
-				b[1] = mappedExons[0]
-				if stringhit in selectedRSS:
-					b[2] = selectedRSS[stringhit][0][2]
-				else:
-					b[2] = mappedExons[ len(mappedExons)-1 ][2]
-			elif gene == "D":
-				if stringhit in selectedRSS:
-					if len(selectedRSS[stringhit][0])==0:
-						b[1] = mappedExons[0][1]
-					else:
-						b[1] = selectedRSS[stringhit][0][1]
-					if len(selectedRSS[stringhit])>1:
-						b[2] = selectedRSS[stringhit][1][2]
-					else:
-						b[2] = mappedExons[0][2]
-			'''
-			# 5f. basic output
+			# 5e. GFF output
 			gType = f"{arguments['LOCUS']}_{gene}_gene" 
 			eType = "exon"
 			if isPseudo:
@@ -404,7 +385,7 @@ def main():
 			for exon in mappedExons.get( stringhit, [] ):
 				gffwriter.writerow( [ exon[0], "annotateIgLoci", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
 
-			# 5g. If functional - save a SeqRecord in addition to GFF
+			# 5f. Fasta output - functional coding sequences only
 			if not isPseudo:
 				if localG: funcNg += 1
 				if localA: funcNa += 1
@@ -425,28 +406,28 @@ def main():
 	with open(arguments['--outfasta'], 'w') as fasta_handle:
 		SeqIO.write( sequences, fasta_handle, 'fasta' )
 		
+	# if we were annotating TRD, add it back to previous TRA results
 	if arguments['LOCUS'] == 'TRD':
 		newAnnotations = parseTRA(arguments['--outgff'])
 		newAnnotations.saveas(arguments['--outgff'])
+
+	# clean up
 	shutil.rmtree("annoTemp")
+
+	# If this was TRA, we now need to go back and hit TRD, since it is within the TRA locus
 	if arguments['LOCUS'] == 'TRA':
-		new_arguments = "TRD"
-		arguments['LOCUS'] = new_arguments
+		arguments['LOCUS'] = "TRD"
 		arguments['--outfasta'] = f"TRGenes_TRD.fa"
 		main()
 
-		#call new script/function to identify TRD segment and exclude TRD call outside/TRA call inside of it.
-		#	Since you've already save the gff, probably just read it backin to start and overwrite with the cleaned up output
-		#   hypothesis: we can identify TRD segment from first functional TRDV to end of TRDC
-		#       ->will need error handling to decide what to do if one/both isn't identified
 
 
 if __name__ == '__main__':
 
 	arguments = docopt(__doc__)
 
-	if arguments['LOCUS'] not in ['IGH','IGK','IGL','TRA','TRD','TRB']:
-		sys.exit("Valid choices for LOCUS are IGH, IGK, IGL,TRA,TRD, or TRB only")
+	if arguments['LOCUS'] not in ['IGH','IGK','IGL','TRA','TRB']:
+		sys.exit("Valid choices for LOCUS are IGH, IGK, IGL, TRA, or TRB only")
 
 	#log command line
 	logCmdLine(sys.argv)
