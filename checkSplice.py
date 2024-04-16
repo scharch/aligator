@@ -46,6 +46,8 @@ def reindexExons(e, minpos, maxpos):
 
 
 def mapExons(e, posDict, source ):
+	#chaim adding pseudocode
+	exon_type = re.search("(.*)-exon", e.name).group(1)
 
 	#convert exon coordinates to contig being annotated
 	e.chrom  = source.chrom
@@ -80,7 +82,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		#check if at least one of the hits has CDS annotations
 		names = re.sub(" .*$","",h.name).split(",")
 		for n in names:
-			exons = targetBed.filter(lambda x: x.name == n + " CDS").saveas()
+			exons = targetBed.filter(lambda x: n in x.name and "exon" in x.name).saveas()
 			if len(exons) > 0:
 				if not gapFinder(exons, targetSeq): #avoid things that might cause trouble
 					break
@@ -92,7 +94,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 			for b in blastHits:
 				correctedName = re.sub( "(-...)-.", "\\1", b.chrom ) #?occasional extra letters in coding database names for some reason
 				correctedName = re.sub( "\*\d\d", "*01", correctedName ) #change allele designation to 01 to match targetBed
-				exons = targetBed.filter( lambda x: x.name == correctedName + " CDS" ).saveas()
+				exons = targetBed.filter(lambda x: correctedName in x.name and "exon" in x.name).saveas()
 				if len(exons) > 0:
 					break
 
