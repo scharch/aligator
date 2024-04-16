@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+
+"""
+ALIGaToR                  /^^^^\\
+             /^^\\________/0     \\
+            (                    `~+++,,_____,,++~^^^^^^^
+          ...V^V^V^V^V^V^\\...............................
+             Allen Mullen
+
+
+ALIGaToR is the Annotator of Loci for IG and T-cell Receptor. It uses known annotations
+	of an IG/TR genomic region and extrapolates those to new set of genomic contigs.
+
+Usage: 
+	aligator <command> [ <args>... ]
+
+Commands:
+
+	extract    Extract reference annotations from an IMGT webpage 
+	predict    Predict RSS in genomic sequences
+	annotate   Use reference annotations and predicted RSS to annotate novel genomic sequences
+
+Created by Chaim A Schramm and Simone Olubo on 2024-04-15.
+
+Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
+All rights reserved.
+
+"""
+
+import os, re, sys
+from docopt import docopt
+from subprocess import run
+
+if __name__ == '__main__':
+
+	SOURCE_DIR = os.environ.get('ALIGATOR_PATH', "")
+	if not os.path.exists( SOURCE_DIR ):
+		find_path = re.match("(.+)/aligator", sys.argv[0])
+		if find_path:
+			SOURCE_DIR = find_path.group(1)
+		else:
+			sys.exit( "Can't find the code directory, please set ALIGATOR_PATH environmental variable." )
+
+	args = docopt( __doc__, options_first=True )
+
+	if args['<command>'] == 'extract':
+		exit( run(['python', f"{SOURCE_DIR}/IMGThtmlParser.py"] + args['<args>']) )
+ 
+	elif args['<command>'] == 'predict':
+		predict_doc = """predictRSS.sh
+
+This script uses the DnaGrep application (Merelli et al NAR 2010) to predict the presence
+	of Recombination Signal Sequences (RSS) using the Recombination Information Content (RIC)
+	developed by Cowell et al (Genome Biol 2002). It is part of the ALIGaToR immunogenetic
+	annotation suite.
+
+Usage: predictRSS.sh PATH FASTA OUT
+
+Options:
+   PATH    Path to ALIGaToR directory
+   FASTA   Fasta file to predict
+   OUT     Header for output files
+
+Output will be in BED format with names OUT.RSS12.bed and OUT.RSS23.bed
+
+Created by Chaim A Schramm on 2024-04-15.
+
+Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
+All rights reserved."""
+		newargs = docopt( predict_doc, argv=args['<args>'] )
+		exit( run(['bash', f"{SOURCE_DIR}/predictRSS.sh", newargs['PATH'], newargs['FASTA'], newargs['OUT']] ) )
+
+	elif args['<command>'] == 'annotate':
+		exit( run(['python', f"{SOURCE_DIR}/annotator.py"] + args['<args>']) )
+
+	elif args['<command>'] in ['help', None]:
+		exit( run(['python', f"{SOURCE_DIR}/aligator", '--help']) )
+
+	else:
+		exit("ALIGaToR does not recognize the command %r. Please see 'aligator help'." % args['<command>'])
