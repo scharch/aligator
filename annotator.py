@@ -383,7 +383,8 @@ def main():
 				if len(rss)==0: continue # D gene with 3' RSS only
 				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalName}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
-				gffwriter.writerow( [ exon[0], "ALIGaToR", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
+				exon_name=exon[3].split()
+				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[2]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
 
 			# 5f. Fasta output - functional coding sequences only
 			if not isPseudo:
