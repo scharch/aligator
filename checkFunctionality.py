@@ -57,7 +57,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, genes):
 		
 		# 4a. Get spliced sequence
 		splicedSeq = ""
-		if b.strand == "+":
+		if exonList[0].strand == "+": #assuming all exons are in the same direction
 			for exon in exonList:
 				splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
 		else:
@@ -116,7 +116,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, genes):
 			toCheck = [ (0,boundary), (boundary, None) ]
 			if len(exonList) == 1: #For light chains
 					checkSeq = BedTool.seq( (exonList[0][0],int(exonList[0][1]),int(exonList[0][2])), contigs ) #this needs to be fixed because exon is not defined outside fo the for loop
-					if b.strand=="-":
+					if exonList[0].strand=="-":
 						checkSeq = str( Seq(checkSeq).reverse_complement() ) 
 					checkSeq = "G" + checkSeq
 					with warnings.catch_warnings():
@@ -130,7 +130,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, genes):
 				#only loop if there are multiple exons found
 				for cds in toCheck:
 					checkSeq = "G"
-					if b.strand == "+":
+					if exonList[0].strand == "+":
 						for exon in exonList[ cds[0]:cds[1] ]:
 							checkSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
 					else:
