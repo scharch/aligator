@@ -160,7 +160,7 @@ def main():
 		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], arguments['CONTIGS'], gene, arguments['--blast'], arguments['--alleledb'] )
 
 		# 4. Check functionality
-		geneStatus2, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], SOURCE_DIR, arguments['LOCUS'], gene )
+		geneStatus2, splicedSequences, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], SOURCE_DIR, arguments['LOCUS'], gene )
 
 
 		# 5a. Figure out existing naming
@@ -278,7 +278,7 @@ def main():
 				if localA: funcNa += 1
 
 				#create and save a SeqRecord
-				sequences.append( SeqRecord( Seq(splicedSeq), id=finalName) )
+				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalName) )
 
 		# 6c. Print some statistics
 		totals = Counter( geneStatus.values() )

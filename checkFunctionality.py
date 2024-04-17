@@ -50,7 +50,8 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 
 	from aligator import quickAlign, GAPPED_CODON_TABLE
 
-	status = dict()
+	status  = dict()
+	seqdict = dict()
 	mutatedInvar = 0
 	stopCodon = 0
 
@@ -65,6 +66,8 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 			for exon in reversed(exonList):
 				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
 				splicedSeq += str( Seq(rc).reverse_complement() )
+
+		seqdict[ stringhit ] = splicedSeq
 
 		# 4b. V gene: already in frame
 		# 		Check start codon
@@ -147,4 +150,4 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 						status[ stringhit ] = "pseudogene due to an internal stop codon"
 						break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
 
-	return status, stopCodon, mutatedInvar
+	return status, seqdict, stopCodon, mutatedInvar
