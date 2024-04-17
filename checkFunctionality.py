@@ -84,7 +84,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 					with open( f"{directory}/{locus}{gene}.fa", 'r' ) as refHandle:
 						refSeq = SeqIO.read(refHandle, 'fasta')
 					align = quickAlign( refSeq, SeqRecord(splicedAA) )
-					invar = checkInvariants( align, gene )
+					invar = checkInvariants( align, locus, gene )
 					if not invar:
 						mutatedInvar += 1
 						status[ stringhit ] = "pseudogene due to a missing invariant residue"
@@ -103,7 +103,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 				stopCodon += 1
 				status[ stringhit ] = "pseudogene due to an internal stop codon"
 			else:
-				invar = checkInvariants( align, gene )
+				invar = checkInvariants( align, locus, gene )
 				if not invar:
 					mutatedInvar += 1
 					status[ stringhit ] = "pseudogene due to a missing invariant residue"
