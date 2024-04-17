@@ -17,6 +17,7 @@ import warnings
 from Bio import BiopythonWarning
 from Bio import SeqIO
 from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 import re, sys
 
 
