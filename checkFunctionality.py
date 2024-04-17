@@ -45,7 +45,7 @@ def checkInvariants( align, locus, gene ):
 
 
 
-def checkFunctionality( exonDict, contigs, directory, locus, genes):
+def checkFunctionality( exonDict, contigs, directory, locus, gene):
 
 	from aligator import quickAlign, GAPPED_CODON_TABLE
 
