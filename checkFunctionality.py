@@ -115,7 +115,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 		#          Push each into frame and translate to check for stop codons.
 		elif gene == "C":
 			boundary = len(exonList) - 2
-			if "IGHCA" in finalName: #?
+			if "IGHCA" in stringhit: #?
 				boundary = len(exonList) - 1 #only one M exon for IGA
 			toCheck = [ (0,boundary), (boundary, None) ]
 			if len(exonList) == 1: #For light chains
