@@ -31,6 +31,8 @@ Created by Chaim A Schramm on 2019-07-16.
 Updated and documented by CA Schramm 2019-09-21.
 Many updates and tweaks by Simone Olubo, 2022-2024.
 Clean up and tweaks by CA Schramm 2024-04-15.
+Pulled exon types through by S Olubo 2024-04-15.
+Moved functionality checks to separate script by CA Schramm 2024-04-16.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -56,30 +58,6 @@ if not os.path.exists( SOURCE_DIR ):
 		sys.exit( "Can't find the code directory, please try calling the script using the full absolute path." )
 sys.path.append(f"{SOURCE_DIR}/..")
 from aligator import *
-
-
-def checkInvariants( align, gene ):
-	#remove gaps in reference (one at a time so we don't get tripped up by shifting indices)
-	gap = re.search( "-+", align['ref'] )
-	while (gap):
-		align['ref']  = align['ref'][0:gap.start()]  + align['ref'][gap.end():]
-		align['test'] = align['test'][0:gap.start()] + align['test'][gap.end():]
-		gap = re.search( "-+", align['ref'] )
-
-	#look up invariant positions in reference and check
-	invars = { "IGH":{ "V":{21:'C', 95:'C'}, "J":{6:'W'} },
-			   "IGK":{ "V":{22:'C', 87:'C'}, "J":{3:'F'} },
-			   "IGL":{ "V":{21:'C', 88:'C'}, "J":{3:'F'} },
-			   "TRA":{ "V":{21:'C', 87:'C'}, "J":{12:'F'} },
-			   "TRB":{"V":{22:'C', 90:'C'}, "J":{6:'F'} },
-			   "TRD":{ "V":{22:'C', 91:'C'}, "J":{9:'F'}}}
-
-
-	for pos in invars[ arguments['LOCUS'] ][ gene ]:
-		if align[ 'test' ][ pos ] != invars[arguments['LOCUS']][gene][pos]:
-			return False
-
-	return True
 
 
 
@@ -179,11 +157,13 @@ def main():
 			
 	
 		# 3. Check splice sites and recover exons
-		#       This will print an error message for incomplete hits
-		#       but I'm not trying to extend them, because blasting with multiple related genes should hopefully do the trick
 		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], arguments['CONTIGS'], gene, arguments['--blast'], arguments['--alleledb'] )
 
-		# 4a. Figure out existing naming
+		# 4. Check functionality
+		geneStatus2, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], SOURCE_DIR, arguments['LOCUS'], gene )
+
+
+		# 5a. Figure out existing naming
 		#     Go through raw databases and track the max known allele number for naming
 		alleleMax = defaultdict( int )
 		with open( f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa", 'r' ) as dbhandle:
@@ -210,8 +190,6 @@ def main():
 		funcNg = 0
 		funcNa = 0
 		used = defaultdict( int )
-		mutatedInvar = 0
-		stopCodon = 0
 
 		for b in blastHits:
 
@@ -219,7 +197,7 @@ def main():
 			localA   = False
 			isPseudo = False
 
-			# 4b. Find closest known sequence and name based on that
+			# 5b. Find closest known sequence and name based on that
 			#     Unfortunately, the `merge` operation doesn't preserve the relationship between hit names
 			#         scores, and the possibility of the boundaries changing based on overlapping hits means
 			#         we can't easily go back to the raw BLAST output. So, get the final sequence from the
@@ -262,7 +240,7 @@ def main():
 					alleleMax[ geneID ] += 1
 					finalName = geneID + f"*{alleleMax[geneID]:02}"
 
-			# 5. Check if this needs to be labeled as a pseudogene and write GFF output
+			# 6. Check if this needs to be labeled as a pseudogene and write GFF output
 			#        I don't see an obvious way to mark genes with missing RSS as "ORF" using the Sequence Ontology as required by
 			#        GFF3 format, but --on the other hand-- if splice sites are conserved and there are no stop codons, then that
 			#        actually seems like pretty good evidence it's a functional gene and most likely a false negative of the RSS
@@ -275,103 +253,11 @@ def main():
 			if stringhit in geneStatus:
 				print(f"{finalName} marked as a pseudogene due to {geneStatus[stringhit]}")
 				isPseudo = True
-			else:
+			elif stringhit in geneStatus2:
+				print(f"{finalName} marked as a {geneStatus2[stringhit]}")
+				isPseudo = True
 
-				# 5a. Get spliced sequence to check for stop codons and invariant residues
-				splicedSeq = ""
-				if b.strand == "+":
-					for exon in mappedExons[ stringhit ]:
-						splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
-				else:
-					for exon in reversed(mappedExons[ stringhit ]):
-						rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
-						splicedSeq += str( Seq(rc).reverse_complement() )
-
-				# 5b. V gene: already in frame, translate and align
-				if gene == "V":
-					with warnings.catch_warnings():
-						warnings.simplefilter('ignore', BiopythonWarning)
-						splicedAA = Seq( splicedSeq ).translate(table=GAPPED_CODON_TABLE)
-					if "*" in splicedAA:
-						stopCodon += 1
-						print(f"{finalName} marked as a pseudogene due to an internal stop codon")
-						isPseudo = True
-					else:
-						with open( f"{SOURCE_DIR}/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
-							refSeq = SeqIO.read(refHandle, 'fasta')
-						align = quickAlign( refSeq, SeqRecord(splicedAA) )
-						invar = checkInvariants( align, gene )
-						if not invar:
-							mutatedInvar += 1
-							print(f"{finalName} marked as a pseudogene due to a missing invariant residue")
-							isPseudo =True
-
-				# 5c. J gene, align in nt space, then translate
-				elif gene == "J":
-					with open( f"{SOURCE_DIR}/{arguments['LOCUS']}{gene}.fa", 'r' ) as refHandle:
-						refSeq = SeqIO.read(refHandle, 'fasta')
-					align = quickAlign( refSeq, SeqRecord(splicedSeq) )
-					with warnings.catch_warnings():
-						warnings.simplefilter('ignore', BiopythonWarning)
-						align['ref']  = str( Seq(align['ref'] ).translate(table=GAPPED_CODON_TABLE) )
-						align['test'] = str( Seq(align['test']).translate(table=GAPPED_CODON_TABLE) )
-					if "*" in align['test']:
-						stopCodon += 1
-						print(f"{finalName} marked as a pseudogene due to an internal stop codon")
-						isPseudo = True
-					else:
-						invar = checkInvariants( align, gene )
-						if not invar:
-							mutatedInvar += 1
-							print(f"{finalName} marked as a pseudogene due to a missing invariant residue")
-							isPseudo = True
-
-				# 5d. C gene, need to check secreted and membrane-bound CDSs separately.
-				#          Push each into frame and translate to check for stop codons.
-				elif gene == "C":
-					hasStop  = False
-					boundary = len(mappedExons[stringhit]) - 2
-					if "IGHCA" in finalName: #?
-						boundary = len(mappedExons[stringhit]) - 1 #only one M exon for IGA
-					toCheck = [ (0,boundary), (boundary, None) ]
-					if len(mappedExons[stringhit]) == 1: #For light chains
-							checkSeq = BedTool.seq( (mappedExons[stringhit][0][0],int(mappedExons[stringhit][0][1]),int(mappedExons[stringhit][0][2])), arguments['CONTIGS'] ) #this needs to be fixed because exon is not defined outside fo the for loop
-							if b.strand=="-":
-								checkSeq = str( Seq(checkSeq).reverse_complement() ) 
-							checkSeq = "G" + checkSeq
-							with warnings.catch_warnings():
-								warnings.simplefilter('ignore', BiopythonWarning)
-								splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
-							if "*" in splicedAA:
-								stopCodon += 1
-								hasStop = True
-								print(f"{finalName} marked as a pseudogene due to an internal stop codon")
-
-					else:
-						#only loop if there are multiple exons found
-						for cds in toCheck:
-							checkSeq = "G"
-							if b.strand == "+":
-								for exon in mappedExons[ stringhit ][ cds[0]:cds[1] ]:
-									checkSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
-							else:
-								for exon in list(reversed(mappedExons[ stringhit ]))[ cds[0]:cds[1] ]:
-									rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), arguments['CONTIGS'] )
-									checkSeq += str( Seq(rc).reverse_complement() )
-
-							with warnings.catch_warnings():
-								warnings.simplefilter('ignore', BiopythonWarning)
-								splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
-							if "*" in splicedAA:
-								stopCodon += 1
-								hasStop = True
-								print(f"{finalName} marked as a pseudogene due to an internal stop codon")
-								break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
-
-							if hasStop:
-								isPseudo = True 
-
-			# 5e. GFF output
+			# 6a. GFF output
 			gType = f"{arguments['LOCUS']}_{gene}_gene" 
 			eType = "exon"
 			if isPseudo:
@@ -386,7 +272,7 @@ def main():
 				exon_name=exon[3].split()
 				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[2]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
 
-			# 5f. Fasta output - functional coding sequences only
+			# 6b. Fasta output - functional coding sequences only
 			if not isPseudo:
 				if localG: funcNg += 1
 				if localA: funcNa += 1
@@ -394,7 +280,7 @@ def main():
 				#create and save a SeqRecord
 				sequences.append( SeqRecord( Seq(splicedSeq), id=finalName) )
 
-		# 5h. Print some statistics
+		# 6c. Print some statistics
 		totals = Counter( geneStatus.values() )
 		print( f"{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
 		print( f"      {len(geneStatus)+stopCodon+mutatedInvar} are labeled as pseudogenes: {totals['no target CDS found']} without target CDSs, {totals['a bad splice donor']+totals['a bad splice acceptor']} bad splice sites,")
@@ -402,7 +288,7 @@ def main():
 		print( f"      Of {len(mappedExons)-len(geneStatus)-stopCodon-mutatedInvar} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
 		print(  "      Genes with more than 2 alleles found: " + ",".join([ g for g in used if used[g]>2 ]) + "\n" )
 	
-	# 6. Finish outputs and clean up
+	# 7. Finish outputs and clean up
 	gffhandle.close()
 	with open(arguments['--outfasta'], 'w') as fasta_handle:
 		SeqIO.write( sequences, fasta_handle, 'fasta' )

@@ -9,6 +9,7 @@ This script checks that the expected splice sites are present in V, J, and C
 Created by Chaim A Schramm on 2019-08-06.
 Switched from CDS to exon and pulled exon labels through by Simone Olubo 2024-04-15.
 Some quick clean up by CA Schramm 2024-04-16.
+Moved check for start codon to new script by CA Schramm 2024-04-16.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -216,19 +217,6 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 				if not s == "CT":
 					pseudo = True
 					reasons[ stringhit ] = "a bad splice acceptor"
-
-		#check first exon of V gene for start codon
-		elif gene == "V":
-			if h.strand == "+":
-				s = BedTool.seq((mapped[0].chrom, mapped[0].start, mapped[0].start+3), contigs)
-				if not s == "ATG":
-					pseudo = True
-					reasons[ stringhit ] = "an invalid start codon"
-			else:
-				s = BedTool.seq((mapped[len(mapped)-1].chrom, mapped[len(mapped)-1].stop-3, mapped[len(mapped)-1].stop), contigs)
-				if not s == "CAT":
-					pseudo = True
-					reasons[ stringhit ] = "an invalid start codon"
 
 		results[ stringhit ] = mapped
 
