@@ -270,7 +270,7 @@ def main():
 				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalName}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
 				exon_name=exon[3].split()
-				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[2]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
+				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[1]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
 			if not isPseudo:

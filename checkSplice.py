@@ -54,7 +54,7 @@ def mapExons(e, posDict, source ):
 
 	#convert exon coordinates to contig being annotated
 	e.chrom  = source.chrom
-	e.name   = f"{source.name} {exon_type}"
+	e.name   = exon_type
 	e.strand = source.strand
 
 	if source.strand == "+":
