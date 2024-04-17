@@ -7,8 +7,10 @@ This script checks that the expected splice sites are present in V, J, and C
     genes found by blast.
 
 Created by Chaim A Schramm on 2019-08-06.
+Switched from CDS to exon and pulled exon labels through by Simone Olubo 2024-04-15.
+Some quick clean up by CA Schramm 2024-04-16.
 
-Copyright (c) 2019 Vaccine Research Center, National Institutes of Health, USA.
+Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
 """
@@ -46,7 +48,7 @@ def reindexExons(e, minpos, maxpos):
 
 
 def mapExons(e, posDict, source ):
-	#chaim adding pseudocode
+
 	exon_type = re.search("(.*)-exon", e.name).group(1)
 
 	#convert exon coordinates to contig being annotated
@@ -67,7 +69,7 @@ def mapExons(e, posDict, source ):
 
 def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq ):
 
-	from annotateIgLoci import blast2bed, quickAlign, GAPPED_CODON_TABLE
+	from aligator import blast2bed, quickAlign, GAPPED_CODON_TABLE
 
 	results = dict()
 	reasons = dict()
@@ -79,7 +81,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		stringhit =	"\t".join(h[0:6])
 		pseudo = False
 
-		#check if at least one of the hits has CDS annotations
+		#check if at least one of the hits has annotated exons
 		names = re.sub(" .*$","",h.name).split(",")
 		for n in names:
 			exons = targetBed.filter(lambda x: n in x.name and "exon" in x.name).saveas()
@@ -100,7 +102,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 		#no matches whatsoever
 		if len(exons) == 0:
-			reasons[ stringhit ] = "no target CDS found"
+			reasons[ stringhit ] = "no targets with exons found"
 			continue
 
 		#now get sequences and align them
@@ -121,7 +123,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		finalExons = exons.each( reindexExons, exons[0].start, exons[len(exons)-1].stop ).saveas()
 		finalExons = finalExons.sort() #if they were negative strand, this puts the flipped exons in order
 
-		#extract and copy CDS/domain descriptions
+		#extract and copy exon/domain descriptions
 		#kludgy, but start by making a dictionary of corresponding positions
                     #can use this to try and extend incomplete hits, if need be
 		posDict = dict()
