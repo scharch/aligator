@@ -27,7 +27,7 @@ if [[ ! -f $ALIGATOR_PATH/DnaGrep/DnaGrep ]]; then
 fi
 
 $ALIGATOR_PATH/DnaGrep/DnaGrep model -q -m 0 $INPUT_FASTA $ALIGATOR_PATH/DnaGrep/fasta/HS23RSS.fasta $(cat $ALIGATOR_PATH/DnaGrep/model/HS23.model) ca | \
-		awk '$6>-58.45 {print $1,$2-1,$3-1,$4,$5,$6}' OFS="\t" > $OUTPUT_PREFIX.RSS23.bed
+		awk '$6>-58.45 {print $1,$2-1,$3-1,$4,$6,$5}' OFS="\t" > $OUTPUT_PREFIX.RSS23.bed
 
 $ALIGATOR_PATH/DnaGrep/DnaGrep model -q -m 0 $INPUT_FASTA $ALIGATOR_PATH/DnaGrep/fasta/HS12RSS.fasta $(cat $ALIGATOR_PATH/DnaGrep/model/HS12.model) ca | \
-		awk '$6>-38.81 {print $1,$2-1,$3-1,$4,$5,$6}' OFS="\t" > $OUTPUT_PREFIX.RSS12.bed
+		awk '$6>-38.81 {print $1,$2-1,$3-1,$4,$6,$5}' OFS="\t" > $OUTPUT_PREFIX.RSS12.bed
