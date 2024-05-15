@@ -6,6 +6,7 @@ checkFunctionality.py
 This script checks for start/stop codons and expected invariants.
 
 Split out from annotator.py by Chaim A Schramm on 2024-04-16.
+Correction for TRxC splicing by CA Scrhamm on 2014-04-17
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -115,8 +116,12 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 		#          Push each into frame and translate to check for stop codons.
 		elif gene == "C":
 			boundary = len(exonList) - 2
-			if "IGHCA" in stringhit: #?
+			if locus in ["TRA","TRB","TRD"]:
+				#no secreted isoform for TR
+				boundary = len(exonList)
+			elif locus=="IGH" and any( ["IGHCA","IGHA","IGA","IgA"] in stringhit ):
 				boundary = len(exonList) - 1 #only one M exon for IGA
+
 			toCheck = [ (0,boundary), (boundary, None) ]
 			if len(exonList) == 1: #For light chains
 					checkSeq = BedTool.seq( (exonList[0][0],int(exonList[0][1]),int(exonList[0][2])), contigs ) #this needs to be fixed because exon is not defined outside fo the for loop
