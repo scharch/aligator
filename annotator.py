@@ -157,104 +157,39 @@ def main():
 			
 	
 		# 3. Check splice sites and recover exons
-		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], arguments['CONTIGS'], gene, arguments['--blast'], arguments['--alleledb'] )
+		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
+																				arguments['CONTIGS'], gene, arguments['--blast'], 
+																				arguments['--blast'] )
 
 		# 4. Check functionality
-		geneStatus2, splicedSequences, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], SOURCE_DIR, arguments['LOCUS'], gene )
+		geneStatus2, splicedSequences, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], 
+																												SOURCE_DIR, arguments['LOCUS'], gene )
 
+		# 5. Figure out naming
+		finalNames, novelG, novelA = assignNames( mappedExons, arguments['TARGETBED'], arguments['TARGETGENOME'], 
+																	arguments['LOCUS'], gene, blast=arguments['--blast'], 
+																	codingDB=arguments['--blast'] ):
 
-		# 5a. Figure out existing naming
-		#     Go through raw databases and track the max known allele number for naming
-		alleleMax = defaultdict( int )
-		with open( f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa", 'r' ) as dbhandle:
-			for seq in SeqIO.parse( dbhandle, 'fasta' ):
-				info = re.match("(.+)\*(\d+)", seq.id)
-				if info:
-					if int(info.group(2))>alleleMax[info.group(1)]:
-						alleleMax[ info.group(1) ] = int( info.group(2) )
-				else:
-					print( f"Unrecognized gene name {seq.id}", file=sys.stderr )
-		if arguments['--alleledb'] is not None:
-			with open( arguments['--alleledb'], 'r' ) as dbhandle:
-				for seq in SeqIO.parse( dbhandle, 'fasta' ):
-					info = re.match("(.+?)(?:-.)?\*(\d+)(?:_.+)?", seq.id)
-					if info:
-						if info.group(1) in alleleMax and int(info.group(2))>alleleMax[info.group(1)]:
-							alleleMax[ info.group(1) ] = int( info.group(2) )
-					else:
-						print( f"Unrecognized gene name {seq.id}", file=sys.stderr )
-
-
-		novelG = 0
-		novelA = 0
 		funcNg = 0
 		funcNa = 0
-		used = defaultdict( int )
 
+		# 6. Check if this needs to be labeled as a pseudogene and write GFF output
+		#        I don't see an obvious way to mark genes with missing RSS as "ORF" using the Sequence Ontology as required by
+		#        GFF3 format, but --on the other hand-- if splice sites are conserved and there are no stop codons, then that
+		#        actually seems like pretty good evidence it's a functional gene and most likely a false negative of the RSS
+		#        prediction. So I'm going to override the Ramesh et al category definitions on this one.
 		for b in blastHits:
 
-			localG   = False
-			localA   = False
-			isPseudo = False
-
-			# 5b. Find closest known sequence and name based on that
-			#     Unfortunately, the `merge` operation doesn't preserve the relationship between hit names
-			#         scores, and the possibility of the boundaries changing based on overlapping hits means
-			#         we can't easily go back to the raw BLAST output. So, get the final sequence from the
-			#         post-merge coordinates and BLAST again.
-
-			s = BedTool([b]).sequence(fi=arguments['CONTIGS'],fo="annoTemp/findGene.fa",s=True)
-			blastOnly(arguments['--blast'], "annoTemp/findGene.fa", f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa", "annoTemp/blastNames.txt", outformat="6 qseqid pident", minPctID='95' )
-			namelist = dict()
-			with open("annoTemp/blastNames.txt", 'r') as handle:
-				reader = csv.reader( handle, delimiter="\t")
-				for row in reader:
-					namelist[ row[0] ] = float(row[1])
-			if arguments['--alleledb'] is not None:
-				blastOnly(arguments['--blast'], "annoTemp/findGene.fa", arguments['--alleledb'], "annoTemp/blastCoding.txt", outformat="6 qseqid pident", minPctID='95' )
-				with open("annoTemp/blastCoding.txt", 'r') as handle:
-					reader = csv.reader( handle, delimiter="\t")
-					for row in reader:
-						if row[0] in namelist:
-							continue #use full-length identity, rather than coding region only identity if available
-						namelist[ row[0] ] = float(row[1])
-
-			if len(namelist) == 0: #if dictionary is empty for namelist then its a novel gene
-				novelG += 1
-				localG = True
-				#print( f"{str(b).strip()} looks like a novel gene, will be named IG{arguments['LOCUS']}{gene}-novel{novelG}" )
-				finalName = f"{arguments['LOCUS']}{gene}-novel{novelG}"
-			else: #if it isnt novel sort names in dictionary
-				byID   = sorted( list(namelist.keys()), key=lambda x: namelist[x], reverse=True )
-				geneID = re.sub( "(.+?)(?:-.)?\*\d+(?:_.+)?", "\\1", byID[0] )
-				used[ geneID ] += 1
-				if namelist[ byID[0] ] == 100: #100 could the combination of blasthit, percentage identify, blast paramerter, allele frequency 
-					#exact match
-					finalName = byID[0]
-					print(f"|\texact match for {finalName}\t|")
-				else:
-					#treat this as a new allele of a known gene
-					# TODO: check if there are multiple possible gene matches and assign to minimize conflicts with other genes???
-					novelA += 1
-					localA = True
-					alleleMax[ geneID ] += 1
-					finalName = geneID + f"*{alleleMax[geneID]:02}"
-
-			# 6. Check if this needs to be labeled as a pseudogene and write GFF output
-			#        I don't see an obvious way to mark genes with missing RSS as "ORF" using the Sequence Ontology as required by
-			#        GFF3 format, but --on the other hand-- if splice sites are conserved and there are no stop codons, then that
-			#        actually seems like pretty good evidence it's a functional gene and most likely a false negative of the RSS
-			#        prediction. So I'm going to override the Ramesh et al category definitions on this one.
 			stringhit = "\t".join(b[0:6])
 		
 			if stringhit in spliceNotes:
-				print(f"{finalName}: {spliceNotes[stringhit]}")
+				print(f"{finalNames[stringhit]}: {spliceNotes[stringhit]}")
 
 			if stringhit in geneStatus:
-				print(f"{finalName} marked as a pseudogene due to {geneStatus[stringhit]}")
+				print(f"{finalNames[stringhit]} marked as a pseudogene due to {geneStatus[stringhit]}")
 				isPseudo = True
 			elif stringhit in geneStatus2:
-				print(f"{finalName} marked as a {geneStatus2[stringhit]}")
+				print(f"{finalNames[stringhit]} marked as a {geneStatus2[stringhit]}")
 				isPseudo = True
 
 			# 6a. GFF output
@@ -264,29 +199,26 @@ def main():
 				gType = f"{arguments['LOCUS']}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
 
-			gffwriter.writerow( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalName}" ] )
+			gffwriter.writerow( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames[stringhit]}" ] )
 			for rss in selectedRSS.get( stringhit, [] ):
 				if len(rss)==0: continue # D gene with 3' RSS only
-				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalName}" ] )
+				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalNames[stringhit]}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
 				exon_name=exon[3].split()
-				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[1]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalName}" ] )
+				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[1]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalNames[stringhit]}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
 			if not isPseudo:
-				if localG: funcNg += 1
-				if localA: funcNa += 1
+				if stringhit in novelG: funcNg += 1
+				if stringhit in novelA: funcNa += 1
 
 				#create and save a SeqRecord
-				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalName) )
+				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit]) )
 
 		# 6c. Print some statistics
-		totals = Counter( geneStatus.values() )
 		print( f"{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
-		print( f"      {len(geneStatus)+stopCodon+mutatedInvar} are labeled as pseudogenes: {totals['no target CDS found']} without target CDSs, {totals['a bad splice donor']+totals['a bad splice acceptor']} bad splice sites,")
-		print( f"          {totals['an invalid start codon']} missing start codons, {stopCodon} internal stop codons, {mutatedInvar} mutated invariants.")
-		print( f"      Of {len(mappedExons)-len(geneStatus)-stopCodon-mutatedInvar} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
-		print(  "      Genes with more than 2 alleles found: " + ",".join([ g for g in used if used[g]>2 ]) + "\n" )
+		print( f"      {len(geneStatus)} are labeled as pseudogene")
+		print( f"      Of {len(mappedExons)-len(geneStatus)} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
 	
 	# 7. Finish outputs and clean up
 	gffhandle.close()

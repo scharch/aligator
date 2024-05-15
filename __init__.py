@@ -6,6 +6,7 @@ from Bio.Align.Applications import MuscleCommandline
 from Bio import SeqIO
 from checkSplice import checkSplice
 from checkFunctionality import checkFunctionality
+from assignNames import assignNames
 from parseRSS import parseRSS
 from blast2bed import blast2bed, blastOnly
 from parseTRA import parseTRA

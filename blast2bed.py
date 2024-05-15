@@ -3,11 +3,11 @@ import subprocess
 import csv
 
 
-def blastOnly(blast, subject, query, outfile, outformat="6 sseqid sstart send qseqid bitscore sstrand", minPctID='0', evalue="1e-20"):
+def blastOnly(blast, subject, query, outfile, outformat="6 sseqid sstart send qseqid bitscore sstrand", minPctID='0', evalue="1e-20", maxTarget="100", maxHSP="100"):
 
 	subprocess.call( [blast, "-subject", subject, "-query", query, "-out", outfile, \
 						"-outfmt", outformat, "-gapopen", '5', "-gapextend", '2', "-penalty", '-1', \
-						"-reward", '1', "-word_size", '7', "-max_target_seqs", '100', '-max_hsps', '100', \
+						"-reward", '1', "-word_size", '7', "-max_target_seqs", maxTarget, '-max_hsps', maxHSP, \
 						'-evalue', evalue, '-perc_identity', minPctID ] )
 
 def blast2bed(blast, subject, query, outfile, evalue="1e-20"):
