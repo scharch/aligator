@@ -155,9 +155,9 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i > 0: #C acceptor handled below
 				acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if not acceptor.endswith("AG") or acceptor.endswith("AC"):
+				if not acceptor.endswith("AG"):# or acceptor.endswith("AC"):
 					pseudo = True
-					reasons[ stringhit ] = "a bad splice acceptor"
+					reasons[ stringhit ] = f"noncanonical splice acceptor {acceptor[-2:]}" #"a bad splice acceptor"
 					#break
 
 			if posDict[ finalExons[i].start ]['gap']:
@@ -169,13 +169,13 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i < len(finalExons)-1: #J donor handled below
 				donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if not (donor.startswith("GT") or donor.startswith("GC")):
+				if not donor.startswith("GT"):# or donor.startswith("GC"):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
 						if not (gene=="C" and Seq(donor).translate().startswith("*")):
 							#assume a stop codon at an exon boundary is always CHS...
 							pseudo = True
-							reasons[ stringhit ] = "a bad splice donor"
+							reasons[ stringhit ] = f"noncanonical splice donor {donor[0:2]}" #"a bad splice donor"
 							#break
 
 			if posDict[ finalExons[i].stop ]['gap']:
