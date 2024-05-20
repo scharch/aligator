@@ -119,7 +119,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 			if locus in ["TRA","TRB","TRD"]:
 				#no secreted isoform for TR
 				boundary = len(exonList)
-			elif locus=="IGH" and any( ["IGHCA","IGHA","IGA","IgA"] in stringhit ):
+			elif locus=="IGH" and any( [ a in stringhit for a in ["IGHCA","IGHA","IGA","IgA"] ] ):
 				boundary = len(exonList) - 1 #only one M exon for IGA
 
 			toCheck = [ (0,boundary), (boundary, None) ]

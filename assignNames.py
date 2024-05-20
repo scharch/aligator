@@ -23,11 +23,11 @@ from Bio.Seq import Seq
 import re, sys, csv
 from collections import defaultdict
 from hashlib import sha1
-from aligator import blastOnly
+from aligator.blast2bed import blastOnly
 
 
 
-def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codingDB=None ):
+def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blastn", codingDB=None ):
 
 	#intialize sequence database
 	seqDB = dict()
@@ -41,17 +41,21 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 	#start by extracting genomic sequences
 	#first get a list of unique gene names in the input bedfile
 	target_names = [ t.name for t in targets ]
-	gene_ids     = set( re.match( f"{locus}{gene}\S+", n).group() for n in target_names )
+	gene_ids     = set( re.match( f"{locus}{gene}\S+", n).group() for n in target_names if re.match( f"{locus}{gene}\S+", n) )
 
 
 	#now extract the exons for each one in turn
-	for gene in gene_ids:
+	for g in gene_ids:
 
 		#some kludge to save them since the BedTool generator object produced by `filter` is weird
-		geneExons = targets.filter( lambda x: f"{locus}{gene}" in x.name and "exon" in x.name )
+		geneExons = targets.filter( lambda x: f"{g}" in x.name and "exon" in x.name )
 		exonList = []
 		for e in geneExons:
 			exonList.append( e )
+
+		if len(exonList)==0:
+			print( f"Warning: no exons found for reference gene {g}, skipping...", file=sys.stderr)
+			continue
 
 		#check strand and get sequence
 		splicedSeq = ""
@@ -63,7 +67,7 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), genomeFile )
 				splicedSeq += str( Seq(rc).reverse_complement() )
 
-		seqDB[ gene ] = splicedSeq
+		seqDB[ g ] = splicedSeq
 
 
 	#parse DB of coding alleles, if present
@@ -76,9 +80,16 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 			for seq in SeqIO.parse( dbhandle, 'fasta' ):
 
 				#someone might have downloaded an allele database directly from IMGT, so parse accordingly
-				imgtID = re.search( f"{locus}({gene}|[DMAGE])[^\s|]+", seq.description)
+				imgtID = re.search( f"(IGH|IGK|IGL|TRA|TRB|TRD)([VDJCMAGE])[^\s|]+", seq.description)
 				if not imgtID:
 					print( f"Cannot parse gene ID {seq.description}, skipping...")
+					continue
+				elif imgtID.groups(1) != locus:
+					#skip silently
+					continue
+				elif gene == "C" and imgtID.groups(2) not in ['C','D','M','A','G','E']:
+					continue
+				elif gene != "C" and imgtID.groups(2) != gene:
 					continue
 
 				if imgtID.group() in seqDB:
@@ -130,20 +141,20 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 				splicedSeq += str( Seq(rc).reverse_complement() )
 
 		#check for exact match in database
-		exactMatches = { k:v if v in splicedSeq or splicedSeq in v for k,v in seqDB.items() }
+		exactMatches = { k:v for k,v in seqDB.items() if v in splicedSeq or splicedSeq in v }
 
 		#multiple exact matches probably means a duplication of some sort in the reference
 		#  print a warning and then choose arbitrarily
 		if len(exactMatches) > 1:
-			print( f"Warning: {','.join(exactMatches)} all appear to have the same sequence. Arbitrarily using {exactMatches.keys()[0]} for naming purposes...", file=sys.stderr)
+			print( f"Warning: '{stringhit}' appears to be a subset of several sequences: {','.join(exactMatches)}.\n    Arbitrarily using {list(exactMatches.keys())[0]} for naming purposes...", file=sys.stderr)
 
 		if len(exactMatches) > 0:
-			newIDs[ stringhit ] = exactMatches.keys()[0]
+			newIDs[ stringhit ] = list(exactMatches.keys())[0]
 
 			#check is this sequence is a superset of something from a coding allele
 			#  if so replace with the longer version
-			if len( splicedSeq ) > len( exactMatches[ exactMatches.keys()[0] ] ):
-				exactMatches[ exactMatches.keys()[0] ] = splicedSeq
+			if len( splicedSeq ) > len( exactMatches[ newIDs[ stringhit ] ] ):
+				exactMatches[ newIDs[ stringhit ] ] = splicedSeq
 
 		else:
 
@@ -151,14 +162,14 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 			seqHash = sha1( splicedSeq.encode() ).hexdigest()[0:4]
 
 			#write sequences to disk and blast for closest match
-			fastaString = "\n".join( [ f">{k}\n{v}" for k,v in seqDB ] )
+			fastaString = "\n".join( [ f">{k}\n{v}" for k,v in seqDB.items() ] )
 			with open( "annoTemp/nameDB.fa", 'w' ) as fh:
 				fh.write( fastaString )
-			with open( "annoTemp/nameQuery.fa", 'w' ) fh2:
+			with open( "annoTemp/nameQuery.fa", 'w' ) as fh2:
 				fh2.write( f">query\n{splicedSeq}" )
 			blastOnly( blast, "annoTemp/nameDB.fa", "annoTemp/nameQuery.fa",
 							"annoTemp/nameResult.txt", outformat="6 sseqid pident", 
-							minPctID=75, maxTarget=1, maxHSP=1 )
+							minPctID='75', maxTarget='1', maxHSP='1' )
 
 			#read in blast hit
 			with open("annoTemp/nameResult.txt", 'r') as handle:
@@ -168,9 +179,10 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 					row = next( csv.reader( handle, delimiter="\t") )
 				except StopIteration:
 					#this shouldn't happen, means blast couldn't find anything with at least 75% id
-					print( f"Warning! No sequence in the database has at least 75% identity with {seqHash} ({stringhit})..")
-					newIDs[ stringhit ] = f"{locus}{gene}{seqHash}"
+					print( f"Warning! No sequence in the database has at least 75% identity with {seqHash} '{stringhit}''..")
+					newIDs[ stringhit ] = f"{locus}{gene}X-{seqHash}*01"
 					novelG.append(stringhit)
+					continue
 
 				#parse the gene name of the hit
 				#this regex probably still isn't right...
@@ -181,17 +193,17 @@ def assignNames( toName, targets, genomeFile, locus, gene, blast="blastn", codin
 					sys.exit(f"ERROR: cannot parse database gene {row[0]} from blast hits for {stringhit}. Please use canonical IMGT naming eg IGHV1-2*02.")
 
 				#check how similar query is to subject
-				if row[1] > 0.95:
-					newIDs[ stringhit ] = f"{geneParse.match(1)}*{seqHash}"
+				if float(row[1]) > 0.95:
+					newIDs[ stringhit ] = f"{geneParse.group(1)}*{seqHash}"
 					novelA.append(stringhit)
 
 				elif gene=="C":
 					#special case, since there's no family number
-					newIDs[ stringhit ] = f"{geneParse.match(1)}*{seqHash}"
+					newIDs[ stringhit ] = f"{geneParse.group(1)}*{seqHash}"
 					novelA.append(stringhit)
 
 				else:
-					newIDs[ stringhit ] = f"{geneParse.match(0)}-{seqHash}*01"
+					newIDs[ stringhit ] = f"{geneParse.group(0)}-{seqHash}*01"
 					novelG.append(stringhit)
 					
 

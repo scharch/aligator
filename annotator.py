@@ -159,16 +159,16 @@ def main():
 		# 3. Check splice sites and recover exons
 		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
 																				arguments['CONTIGS'], gene, arguments['--blast'], 
-																				arguments['--blast'] )
+																				arguments['--alleledb'] )
 
 		# 4. Check functionality
 		geneStatus2, splicedSequences, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], 
 																												SOURCE_DIR, arguments['LOCUS'], gene )
 
 		# 5. Figure out naming
-		finalNames, novelG, novelA = assignNames( mappedExons, arguments['TARGETBED'], arguments['TARGETGENOME'], 
+		finalNames, novelG, novelA = assignNames( mappedExons, arguments['CONTIGS'], targets, arguments['TARGETGENOME'], 
 																	arguments['LOCUS'], gene, blast=arguments['--blast'], 
-																	codingDB=arguments['--blast'] ):
+																	codingDB=arguments['--alleledb'] )
 
 		funcNg = 0
 		funcNa = 0
@@ -181,15 +181,17 @@ def main():
 		for b in blastHits:
 
 			stringhit = "\t".join(b[0:6])
+
+			isPseudo	= False
 		
 			if stringhit in spliceNotes:
-				print(f"{finalNames[stringhit]}: {spliceNotes[stringhit]}")
+				print(f"{finalNames.get(stringhit, stringhit)}: {spliceNotes[stringhit]}")
 
 			if stringhit in geneStatus:
-				print(f"{finalNames[stringhit]} marked as a pseudogene due to {geneStatus[stringhit]}")
+				print(f"{finalNames.get(stringhit, stringhit)} marked as a pseudogene due to {geneStatus[stringhit]}")
 				isPseudo = True
 			elif stringhit in geneStatus2:
-				print(f"{finalNames[stringhit]} marked as a {geneStatus2[stringhit]}")
+				print(f"{finalNames.get(stringhit, stringhit)} marked as a {geneStatus2[stringhit]}")
 				isPseudo = True
 
 			# 6a. GFF output
@@ -199,7 +201,7 @@ def main():
 				gType = f"{arguments['LOCUS']}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
 
-			gffwriter.writerow( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames[stringhit]}" ] )
+			gffwriter.writerow( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')}" ] )
 			for rss in selectedRSS.get( stringhit, [] ):
 				if len(rss)==0: continue # D gene with 3' RSS only
 				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalNames[stringhit]}" ] )
