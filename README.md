@@ -5,7 +5,7 @@ A pipeline for annotating genomic contigs from the IG and TR loci. The pipeline 
 	 <br />-Annotate: Annotator script that uses the extracted reference genome and genomic information to generate a search databse for blast. Blast hits are matched with predicted RSSs. Other scripts are called to check for start and stop codons, and splice sites.
 
 # Getting Started
-#clone the aligator repository 
+Clone the aligator repository 
 git clone https://github.com/scharch/aligator.git
 
 # Dependencies/Prerequisites 
