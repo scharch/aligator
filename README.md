@@ -13,7 +13,6 @@ git clone https://github.com/scharch/aligator.git
 - Beautifulsoup 4.12.3
 - Muscle
 - Blast+
-- BedTools
 - pyBedTools
 
 ## Usage
