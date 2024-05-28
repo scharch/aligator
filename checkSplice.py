@@ -192,6 +192,9 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 		#remove exons that are empty
 		mapped = [ mapped[i] for i in range(len(mapped)) if mapped[i].stop - mapped[i].start > 1 ]
+		if len(mapped)==0:
+			reasons[ stringhit ] = "seems to be a spurious blast hit"
+			continue
 
 		#J and C: extract post/pre nt to verify splicing
 		#  but don't bother if we've already marked the ends as missing
