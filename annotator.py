@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 
 """
-annotator.py
+aligator annotate
 
 This script takes assembled genomic contigs from the Ig loci and looks for and
     annotates V/D/J/C genes based on comparison to a previous set of genomic
     annotations from the same or a related species. Requires BLAST and pybedtools.
 
-Usage: annotator.py CONTIGS RSS12 RSS23 LOCUS TARGETGENOME TARGETBED [ --alleledb coding.fa --outgff annotations.gff --outfasta IgGenes.fa --blast blastn ]
+Usage: annotator.py CONTIGS RSS12 RSS23 LOCUS TARGETGENOME TARGETBED [ --alleledb coding.fa --outgff genes.gff --outfasta genes.fa --blast blastn --debug log ]
 
 Options:
    CONTIGS                    - Assembled genomic contigs to be annotated in fasta format.
@@ -21,11 +21,14 @@ Options:
    --alleledb coding.fa       - An optional database of known coding alleles other than 
                                     those in the reference genome. Will be used to match
                                     and name discovered alleles.
-   --outgff annotations.gff   - Where to save the final annotations - will use GFF3 format.
-                                    [default: annotations.gff]
-   --outfasta IgGenes.fa      - Where to save the extracted sequences of the annotated genes.
-                                    [default: IgGenes.fa]
+   --outgff genes.gff         - Where to save the final annotations - will use GFF3 format.
+                                    [default: genes.gff]
+   --outfasta genes.fa        - Where to save the extracted sequences of the annotated genes.
+                                    [default: genes.fa]
    --blast blastn             - Path to the `blastn` executable. [Default: blastn]
+   --debug log                - Mangage program messages. Options are `quiet` (no messages),
+                                    `log` (save everything to aligator.log file), or `verbose`
+                                    (print everything to screen). [default: log]
 
 Created by Chaim A Schramm on 2019-07-16.
 Updated and documented by CA Schramm 2019-09-21.
@@ -33,6 +36,7 @@ Many updates and tweaks by Simone Olubo, 2022-2024.
 Clean up and tweaks by CA Schramm 2024-04-15.
 Pulled exon types through by S Olubo 2024-04-15.
 Moved functionality checks to separate script by CA Schramm 2024-04-16.
+Added debug option by CA Schramm 2024-05-28.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -55,7 +59,7 @@ if not os.path.exists( SOURCE_DIR ):
 	if find_path:
 		SOURCE_DIR = find_path.group(1)
 	else:
-		sys.exit( "Can't find the code directory, please try calling the script using the full absolute path." )
+		sys.exit( "Can't find the code directory, please set ALIGATOR_PATH environmental variable." )
 sys.path.append(f"{SOURCE_DIR}/..")
 from aligator import *
 
@@ -185,13 +189,13 @@ def main():
 			isPseudo	= False
 		
 			if stringhit in spliceNotes:
-				print(f"{finalNames.get(stringhit, stringhit)}: {spliceNotes[stringhit]}")
+				print(f"{finalNames.get(stringhit, stringhit)}: {spliceNotes[stringhit]}", file=sys.stderr)
 
 			if stringhit in geneStatus:
-				print(f"{finalNames.get(stringhit, stringhit)} marked as a pseudogene due to {geneStatus[stringhit]}")
+				print(f"{finalNames.get(stringhit, stringhit)} marked as a pseudogene due to {geneStatus[stringhit]}", file=sys.stderr)
 				isPseudo = True
 			elif stringhit in geneStatus2:
-				print(f"{finalNames.get(stringhit, stringhit)} marked as a {geneStatus2[stringhit]}")
+				print(f"{finalNames.get(stringhit, stringhit)} marked as a {geneStatus2[stringhit]}", file=sys.stderr)
 				isPseudo = True
 
 			# 6a. GFF output
@@ -215,7 +219,7 @@ def main():
 				if stringhit in novelA: funcNa += 1
 
 				#create and save a SeqRecord
-				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit]) )
+				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") )
 
 		# 6c. Print some statistics
 		print( f"{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
@@ -250,9 +254,12 @@ if __name__ == '__main__':
 	if arguments['LOCUS'] not in ['IGH','IGK','IGL','TRA','TRB']:
 		sys.exit("Valid choices for LOCUS are IGH, IGK, IGL, TRA, or TRB only")
 
-	#log command line
-	logCmdLine(sys.argv)
-
+	if arguments['--debug'] not in ['quiet','log','verbose']:
+		sys.exit("Valid choices for --debug are quiet, log, or verbose only")
+	if arguments['--debug'] == 'quiet':
+		sys.stderr = open('/dev/null', 'w')
+	elif arguments['--debug'] == 'log':
+		sys.stderr = open('aligator.log', 'a')
 
 	evalues = { "V":"1e-20", "D":"1e-10", "J":"1e-10", "C":"1e-100" }
 

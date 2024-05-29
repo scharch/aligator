@@ -43,8 +43,13 @@ if __name__ == '__main__':
 
 	args = docopt( __doc__, options_first=True )
 
+	#log command line
+	sys.path.append(f"{SOURCE_DIR}/..")
+	from aligator import logCmdLine
+	logCmdLine(sys.argv)
+
 	if args['<command>'] == 'extract':
-		exit( run(['python', f"{SOURCE_DIR}/IMGThtmlParser.py"] + args['<args>']) )
+		run(['python', f"{SOURCE_DIR}/IMGThtmlParser.py"] + args['<args>'])
  
 	elif args['<command>'] == 'predict':
 		predict_doc = """predictRSS.sh
@@ -54,10 +59,9 @@ This script uses the DnaGrep application (Merelli et al NAR 2010) to predict the
 	developed by Cowell et al (Genome Biol 2002). It is part of the ALIGaToR immunogenetic
 	annotation suite.
 
-Usage: predictRSS.sh PATH FASTA OUT
+Usage: predictRSS.sh FASTA OUT
 
 Options:
-   PATH    Path to ALIGaToR directory
    FASTA   Fasta file to predict
    OUT     Header for output files
 
@@ -68,13 +72,13 @@ Created by Chaim A Schramm on 2024-04-15.
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved."""
 		newargs = docopt( predict_doc, argv=args['<args>'] )
-		exit( run(['bash', f"{SOURCE_DIR}/predictRSS.sh", newargs['PATH'], newargs['FASTA'], newargs['OUT']] ) )
+		run(['bash', f"{SOURCE_DIR}/predictRSS.sh", SOURCE_DIR, newargs['FASTA'], newargs['OUT']] )
 
 	elif args['<command>'] == 'annotate':
-		exit( run(['python', f"{SOURCE_DIR}/annotator.py"] + args['<args>']) )
+		run(['python', f"{SOURCE_DIR}/annotator.py"] + args['<args>'])
 
 	elif args['<command>'] in ['help', None]:
-		exit( run(['python', f"{SOURCE_DIR}/aligator", '--help']) )
+		run(['python', f"{SOURCE_DIR}/aligator", '--help'])
 
 	else:
 		exit("ALIGaToR does not recognize the command %r. Please see 'aligator help'." % args['<command>'])

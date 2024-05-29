@@ -82,7 +82,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 				#someone might have downloaded an allele database directly from IMGT, so parse accordingly
 				imgtID = re.search( f"(IGH|IGK|IGL|TRA|TRB|TRD)([VDJCMAGE])[^\s|]+", seq.description)
 				if not imgtID:
-					print( f"Cannot parse gene ID {seq.description}, skipping...")
+					print( f"Cannot parse gene ID {seq.description}, skipping...", file=sys.stderr)
 					continue
 				elif imgtID.groups(1) != locus:
 					#skip silently
@@ -112,7 +112,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 							exonID.remove("CHS")
 
 						if len(exonID) == 1:
-							print( f"{imgtID.group()} {exonID[0]}")
+							print( f"{imgtID.group()} {exonID[0]}", file=sys.stderr)
 							cSeqs[ imgtID.group() ][ exonID[0] ] = str( seq.seq )
 						else:
 							#multiple or no matches - just assume it is full-length and move on
@@ -179,7 +179,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 					row = next( csv.reader( handle, delimiter="\t") )
 				except StopIteration:
 					#this shouldn't happen, means blast couldn't find anything with at least 75% id
-					print( f"Warning! No sequence in the database has at least 75% identity with {seqHash} '{stringhit}''..")
+					print( f"Warning! No sequence in the database has at least 75% identity with {seqHash} '{stringhit}''..", file=sys.stderr)
 					newIDs[ stringhit ] = f"{locus}{gene}X-{seqHash}*01"
 					novelG.append(stringhit)
 					continue
