@@ -221,10 +221,11 @@ def main():
 				#create and save a SeqRecord
 				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") )
 
+		num_pseudo = len(set(geneStatus).union(set(geneStatus2)))
 		# 6c. Print some statistics
 		print( f"{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
-		print( f"      {len(geneStatus)} are labeled as pseudogene")
-		print( f"      Of {len(mappedExons)-len(geneStatus)} functional genes, {funcNg} novel genes were detected and {funcNa} new alleles were reported" )
+		print( f"      {num_pseudo} are labeled as pseudogene")
+		print( f"      Of {len(mappedExons)-num_pseudo} functional genes, {funcNg} functional novel ASCs were detected and {funcNa} functional new alleles were reported" )
 	
 	# 7. Finish outputs and clean up
 	gffhandle.close()
