@@ -1,14 +1,22 @@
+"""
+blast2bed.py 
+
+added qstart and qend to outfmt by Simone Olubo & CA Schramm 2024-09-26
+
+Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
+All rights reserved.
+"""
 
 import subprocess
 import csv
 
 
-def blastOnly(blast, subject, query, outfile, outformat="6 sseqid sstart send qseqid bitscore sstrand", minPctID='0', evalue="1e-20", maxTarget="100", maxHSP="100"):
+def blastOnly(blast, subject, query, outfile, outformat="6 sseqid sstart send qseqid bitscore sstrand qstart qend", minPctID='0', evalue="1e-20", maxTarget="100", maxHSP="100"):
 
 	subprocess.call( [blast, "-subject", subject, "-query", query, "-out", outfile, \
 						"-outfmt", outformat, "-gapopen", '5', "-gapextend", '2', "-penalty", '-1', \
 						"-reward", '1', "-word_size", '7', "-max_target_seqs", maxTarget, '-max_hsps', maxHSP, \
-						'-evalue', evalue, '-perc_identity', minPctID ] )
+						'-evalue', evalue, '-perc_identity', minPctID ], stderr=subprocess.DEVNULL)
 
 def blast2bed(blast, subject, query, outfile, evalue="1e-20"):
 

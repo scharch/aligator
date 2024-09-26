@@ -10,6 +10,7 @@ Created by Chaim A Schramm on 2019-08-06.
 Switched from CDS to exon and pulled exon labels through by Simone Olubo 2024-04-15.
 Some quick clean up by CA Schramm 2024-04-16.
 Moved check for start codon to new script by CA Schramm 2024-04-16.
+Removed lines 89-110 and pulled full gene through for the alignment by Simone Olubo & CA Schramm 2024-09-26
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -84,33 +85,14 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 		#check if at least one of the hits has annotated exons
 		names = re.sub(" .*$","",h.name).split(",")
-		for n in names:
-			exons = targetBed.filter(lambda x: n in x.name and "exon" in x.name).saveas()
-			if len(exons) > 0:
-				if not gapFinder(exons, targetSeq): #avoid things that might cause trouble
-					break
-		if len(exons) == 0 and codingSeq is not None:
-			#no annotation: find one that does with BLAST
-			s = BedTool([h]).sequence(fi=contigs,fo="annoTemp/temp.fa",s=True)
-			blast2bed(blast_exec, codingSeq, "annoTemp/temp.fa", "annoTemp/temp.bed")
-			blastHits = BedTool("annoTemp/temp.bed")
-			for b in blastHits:
-				correctedName = re.sub( "(-...)-.", "\\1", b.chrom ) #?occasional extra letters in coding database names for some reason
-				correctedName = re.sub( "\*\d\d", "*01", correctedName ) #change allele designation to 01 to match targetBed
-				exons = targetBed.filter(lambda x: correctedName in x.name and "exon" in x.name).saveas()
-				if len(exons) > 0:
-					break
-
-		#no matches whatsoever
-		if len(exons) == 0:
-			reasons[ stringhit ] = "no targets with exons found"
-			continue
+		exons = targetBed.filter(lambda x: names[0] in x.name and "exon" in x.name).saveas()
+		fullGene = targetBed.filter(lambda x: names[0] in x.name and "gene" in x.name).saveas()
 
 		#now get sequences and align them
 		s = BedTool([h]).sequence(fi=contigs,fo="annoTemp/temp.fa",s=True)
 		with open("annoTemp/temp.fa",'r') as handle:
 			testSeq = SeqIO.read(handle, "fasta")
-		r = exons.merge(d=10000,c="4,5,6",o="first").sequence(fi=targetSeq,fo="annoTemp/ref.fa",s=True)
+		r = fullGene.sequence(fi=targetSeq,fo="annoTemp/ref.fa",s=True)
 		with open("annoTemp/ref.fa",'r') as handle:
 			refSeq = SeqIO.read(handle, "fasta")
 		align = quickAlign(refSeq, testSeq)

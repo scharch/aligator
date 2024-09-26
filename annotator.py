@@ -37,6 +37,7 @@ Clean up and tweaks by CA Schramm 2024-04-15.
 Pulled exon types through by S Olubo 2024-04-15.
 Moved functionality checks to separate script by CA Schramm 2024-04-16.
 Added debug option by CA Schramm 2024-05-28.
+Added check for missing terminal bases by S Olubo & CA Schramm 2024-09-26
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -96,6 +97,12 @@ def main():
 									).sequence( fi=arguments['TARGETGENOME'],
 												fo=f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
 					 							name=True, s=True)
+
+		#read in those fasta seqeuences to create a length dictionary for checking below
+		targetLengths = dict()
+		with open( f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa", 'r' ) as fh:
+			for seq in SeqIO.parse( fh, "fasta" ):
+				targetLengths[ seq.id ] = len( seq.seq )
 		
 		# 1b. Run blast
 		blast2bed( arguments['--blast'], arguments['CONTIGS'],
@@ -126,11 +133,19 @@ def main():
 					dic = defaultdict(list)
 					reader = csv.reader(input, delimiter="\t")
 					for row in reader:
-						row[6]=int(row[6])					
-						x = row[6]
+						row[8]=int(row[8])					
+						x = row[8]
 						dic[x].append(row)
 				for clust in dic.values():
 					sortedHits=sorted( clust,reverse=True, key=lambda r: (int(r[2])-int(r[1]), float(r[4])) )#sort blasthits in descending order first by length then by score
+					#check the best hit to make sure it covers the whole query
+					#if 1-3 bases are missing from either end, claw them back manually
+					#more than that it's probably a pseudogene?
+					if int(sortedHits[0][6]) > 1 and int(sortedHits[0][6]) < 4:
+						sortedHits[0][1] = str( int(sortedHits[0][1]) - int(sortedHits[0][6]) + 1 )
+					if int(sortedHits[0][7]) < targetLengths[ sortedHits[0][3] ] and targetLengths[ sortedHits[0][3] ]-int(sortedHits[0][7]) < 4:
+						sortedHits[0][2] = str( int(sortedHits[0][2]) + targetLengths[ sortedHits[0][3] ] - int(sortedHits[0][7]) )
+
 					maxBlastHits.append(sortedHits[0]) #append first hit from each dictionary list to maxBlastHits list 
 				with open(f"annoTemp/maxBlastHits_{arguments['LOCUS']}{gene}.bed", 'w') as output:
 					writer = csv.writer(output, delimiter="\t")
