@@ -11,6 +11,7 @@ Switched from CDS to exon and pulled exon labels through by Simone Olubo 2024-04
 Some quick clean up by CA Schramm 2024-04-16.
 Moved check for start codon to new script by CA Schramm 2024-04-16.
 Removed lines 89-110 and pulled full gene through for the alignment by Simone Olubo & CA Schramm 2024-09-26
+Added debugging for V-region by S Olubo & CA Schramm 2024-10-01
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -51,7 +52,7 @@ def reindexExons(e, minpos, maxpos):
 
 def mapExons(e, posDict, source ):
 
-	exon_type = re.search("(.*)-exon", e.name).group(1)
+	exon_type = re.search("(.*|-exon|V-Region)", e.name).group(1)
 
 	#convert exon coordinates to contig being annotated
 	e.chrom  = source.chrom
@@ -85,7 +86,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 		#check if at least one of the hits has annotated exons
 		names = re.sub(" .*$","",h.name).split(",")
-		exons = targetBed.filter(lambda x: names[0] in x.name and "exon" in x.name).saveas()
+		exons = targetBed.filter(lambda x: names[0] in x.name and ("exon" in x.name or "V-Region" in x.name)).saveas()
 		fullGene = targetBed.filter(lambda x: names[0] in x.name and "gene" in x.name).saveas()
 
 		#now get sequences and align them
@@ -135,6 +136,9 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		missingExons = []
 		for i in range(len(finalExons)):
 
+			if "V-Region" in finalExons[i].name:
+				continue
+
 			if i > 0: #C acceptor handled below
 				acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
 				if not acceptor.endswith("AG"):# or acceptor.endswith("AC"):
@@ -151,7 +155,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 			if i < len(finalExons)-1: #J donor handled below
 				donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if not donor.startswith("GT"):# or donor.startswith("GC"):
+				if not donor.startswith("GT") and finalExons[i].name == "V-exon":# or donor.startswith("GC"):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
 						if not (gene=="C" and Seq(donor).translate().startswith("*")):

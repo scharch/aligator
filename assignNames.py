@@ -11,6 +11,7 @@ Note that while naming of novel "alleles" (within 5% of a known allele) should
 	similarity between hypothetical novel genes IGHV4-kj82leq and IGHV4-2lk493k.
 
 Split out from annotator.py by Chaim A Schramm on 2024-04-17.
+Added debugging for V-region and commented out 133-142 by S Olubo & CA Schramm 2024-10-01
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -127,18 +128,18 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 
 
 	#now iterate over the hits
-	for stringhit, exonList in toName.items():
+	for stringhit, splicedSeq in toName.items():
 		
-		#Get spliced sequence
-		#  TODO - change dictionary structure in checkSplice/checkFunctionality so I don't have to do this again
-		splicedSeq = ""
-		if exonList[0].strand == "+": #assuming all exons are in the same direction
-			for exon in exonList:
-				splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
-		else:
-			for exon in reversed(exonList):
-				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
-				splicedSeq += str( Seq(rc).reverse_complement() )
+		# #Get spliced sequence
+		# #  TODO - change dictionary structure in checkSplice/checkFunctionality so I don't have to do this again
+		# splicedSeq = ""
+		# if exonList[0].strand == "+": #assuming all exons are in the same direction
+		# 	for exon in exonList:
+		# 		splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
+		# else:
+		# 	for exon in reversed(exonList):
+		# 		rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
+		# 		splicedSeq += str( Seq(rc).reverse_complement() )
 
 		#check for exact match in database
 		exactMatches = { k:v for k,v in seqDB.items() if v in splicedSeq or splicedSeq in v }

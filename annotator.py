@@ -185,7 +185,7 @@ def main():
 																												SOURCE_DIR, arguments['LOCUS'], gene )
 
 		# 5. Figure out naming
-		finalNames, novelG, novelA = assignNames( mappedExons, arguments['CONTIGS'], targets, arguments['TARGETGENOME'], 
+		finalNames, novelG, novelA = assignNames( splicedSequences, arguments['CONTIGS'], targets, arguments['TARGETGENOME'], 
 																	arguments['LOCUS'], gene, blast=arguments['--blast'], 
 																	codingDB=arguments['--alleledb'] )
 

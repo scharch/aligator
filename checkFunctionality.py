@@ -8,6 +8,8 @@ This script checks for start/stop codons and expected invariants.
 Split out from annotator.py by Chaim A Schramm on 2024-04-16.
 Correction for TRxC splicing by CA Scrhamm on 2014-04-17
 
+Added debugging for V-region by S Olubo & CA Schramm 2024-10-01
+
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
@@ -62,13 +64,24 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 		splicedSeq = ""
 		if exonList[0].strand == "+": #assuming all exons are in the same direction
 			for exon in exonList:
+				if "V-Region" in exon.name:
+					continue
 				splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
 		else:
 			for exon in reversed(exonList):
+				if "V-Region" in exon.name:
+					continue
 				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
 				splicedSeq += str( Seq(rc).reverse_complement() )
 
 		seqdict[ stringhit ] = splicedSeq
+		vregion = [ e for e in exonList if "V-Region" in e.name ]
+		if len(vregion)>0:
+			if vregion[0].strand == "+":
+				seqdict[ stringhit ] = BedTool.seq( (vregion[0][0],int(vregion[0][1]),int(vregion[0][2])), contigs )
+			else:
+				rc = BedTool.seq( (vregion[0][0],int(vregion[0][1]),int(vregion[0][2])), contigs )
+				seqdict[ stringhit ] = str( Seq(rc).reverse_complement() )
 
 		# 4b. V gene: already in frame
 		# 		Check start codon
