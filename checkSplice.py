@@ -14,6 +14,7 @@ Removed lines 89-110 and pulled full gene through for the alignment by Simone Ol
 Added debugging for V-region by S Olubo & CA Schramm 2024-10-01
 Fixed start position numbering for D/J genes and removed splice checking for
     D genes by CA Schramm 2024-10-09.
+Fixed exon type regex by CA Schramm 2024-10-09.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -54,7 +55,7 @@ def reindexExons(e, minpos, maxpos):
 
 def mapExons(e, posDict, source ):
 
-	exon_type = re.search("(.*|-exon|V-Region)", e.name).group(1)
+	exon_type = re.sub("-exon", "", e.name)
 
 	#convert exon coordinates to contig being annotated
 	e.chrom  = source.chrom

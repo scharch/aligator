@@ -39,6 +39,7 @@ Moved functionality checks to separate script by CA Schramm 2024-04-16.
 Added debug option by CA Schramm 2024-05-28.
 Added check for missing terminal bases by S Olubo & CA Schramm 2024-09-26.
 Minor tweaks for D handling by CA Schramm 2024-10-09.
+Prevent "V-Region" from being labeled as an exon  by CA Schramm 2024-10-09.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -231,7 +232,9 @@ def main():
 				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalNames[stringhit]}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
 				exon_name=exon[3].split()
-				gffwriter.writerow( [ exon[0], "ALIGaToR", f"{exon_name[1]}-{eType}", int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalNames[stringhit]}" ] )
+				if exon_name[1] != "V-Region":
+					exon_name[1] += f"-{eType}"
+				gffwriter.writerow( [ exon[0], "ALIGaToR", exon_name[1], int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalNames[stringhit]}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
 			if not isPseudo:
