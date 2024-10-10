@@ -12,6 +12,8 @@ Some quick clean up by CA Schramm 2024-04-16.
 Moved check for start codon to new script by CA Schramm 2024-04-16.
 Removed lines 89-110 and pulled full gene through for the alignment by Simone Olubo & CA Schramm 2024-09-26
 Added debugging for V-region by S Olubo & CA Schramm 2024-10-01
+Fixed start position numbering for D/J genes and removed splice checking for
+    D genes by CA Schramm 2024-10-09.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -98,13 +100,11 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 			refSeq = SeqIO.read(handle, "fasta")
 		align = quickAlign(refSeq, testSeq)
 
-
-
 		#make sure the feature numbering corresponds to the extracted sequence
 		#    by rev-comp-ing if necessary and subtracting off the start position
 		#    of the first exon. Makes sure we know which is the splice donor and
 		#    which is the splice acceptor.
-		finalExons = exons.each( reindexExons, exons[0].start, exons[len(exons)-1].stop ).saveas()
+		finalExons = exons.each( reindexExons, fullGene[0].start, fullGene[0].stop ).saveas()
 		finalExons = finalExons.sort() #if they were negative strand, this puts the flipped exons in order
 
 		#extract and copy exon/domain descriptions
@@ -133,44 +133,44 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		# also check if the ends of the alignment are missing
 		incomplete5 = False
 		incomplete3 = False
-		missingExons = []
-		for i in range(len(finalExons)):
+		if gene != "D":
+			missingExons = []
+			for i in range(len(finalExons)):
 
-			if "V-Region" in finalExons[i].name:
-				continue
+				if "V-Region" in finalExons[i].name:
+					continue
 
-			if i > 0: #C acceptor handled below
-				acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if not acceptor.endswith("AG"):# or acceptor.endswith("AC"):
-					pseudo = True
-					reasons[ stringhit ] = f"noncanonical splice acceptor {acceptor[-2:]}" #"a bad splice acceptor"
-					#break
+				if i > 0: #C acceptor handled below
+					acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
+					if not acceptor.endswith("AG"):# or acceptor.endswith("AC"):
+						pseudo = True
+						reasons[ stringhit ] = f"noncanonical splice acceptor {acceptor[-2:]}" #"a bad splice acceptor"
+						#break
 
-			if posDict[ finalExons[i].start ]['gap']:
-				if i==0:
-					notes[ stringhit ] = f"incomplete 5' end"
-					incomplete5 = True
-				else:
-					notes[ stringhit ] = f"splice acceptor in alignment gap in exon {i+1}"
+				if posDict[ finalExons[i].start ]['gap']:
+					if i==0:
+						notes[ stringhit ] = f"incomplete 5' end"
+						incomplete5 = True
+					else:
+						notes[ stringhit ] = f"splice acceptor in alignment gap in exon {i+1}"
 
-			if i < len(finalExons)-1: #J donor handled below
-				donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-				if not donor.startswith("GT") and finalExons[i].name == "V-exon":# or donor.startswith("GC"):
-					with warnings.catch_warnings():
-						warnings.simplefilter('ignore', BiopythonWarning)
-						if not (gene=="C" and Seq(donor).translate().startswith("*")):
-							#assume a stop codon at an exon boundary is always CHS...
-							pseudo = True
-							reasons[ stringhit ] = f"noncanonical splice donor {donor[0:2]}" #"a bad splice donor"
-							#break
+				if i < len(finalExons)-1: #J donor handled below
+					donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
+					if not donor.startswith("GT") and finalExons[i].name == "V-exon":# or donor.startswith("GC"):
+						with warnings.catch_warnings():
+							warnings.simplefilter('ignore', BiopythonWarning)
+							if not (gene=="C" and Seq(donor).translate().startswith("*")):
+								#assume a stop codon at an exon boundary is always CHS...
+								pseudo = True
+								reasons[ stringhit ] = f"noncanonical splice donor {donor[0:2]}" #"a bad splice donor"
+								#break
 
-			if posDict[ finalExons[i].stop ]['gap']:
-				if i==len(finalExons)-1:
-					notes[ stringhit ] = f"incomplete 3' end"
-					incomplete3 = True
-				else:
-					notes[ stringhit ] = f"splice donor in alignment gap in exon {i+1}"
-
+				if posDict[ finalExons[i].stop ]['gap']:
+					if i==len(finalExons)-1:
+						notes[ stringhit ] = f"incomplete 3' end"
+						incomplete3 = True
+					else:
+						notes[ stringhit ] = f"splice donor in alignment gap in exon {i+1}"
 
 		# update coordinates/names to contig being annotated
 		mapped = finalExons.each( mapExons, posDict, h ).saveas()
@@ -179,7 +179,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		#remove exons that are empty
 		mapped = [ mapped[i] for i in range(len(mapped)) if mapped[i].stop - mapped[i].start > 1 ]
 		if len(mapped)==0:
-			reasons[ stringhit ] = "seems to be a spurious blast hit"
+			notes[ stringhit ] = "seems to be a spurious blast hit"
 			continue
 
 		#J and C: extract post/pre nt to verify splicing

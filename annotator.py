@@ -37,7 +37,8 @@ Clean up and tweaks by CA Schramm 2024-04-15.
 Pulled exon types through by S Olubo 2024-04-15.
 Moved functionality checks to separate script by CA Schramm 2024-04-16.
 Added debug option by CA Schramm 2024-05-28.
-Added check for missing terminal bases by S Olubo & CA Schramm 2024-09-26
+Added check for missing terminal bases by S Olubo & CA Schramm 2024-09-26.
+Minor tweaks for D handling by CA Schramm 2024-10-09.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -201,12 +202,16 @@ def main():
 
 			stringhit = "\t".join(b[0:6])
 
+			if gene=="D" and stringhit not in selectedRSS:
+				print(f"Discarding {finalNames.get(stringhit,stringhit)} because of no associated RSS", file=sys.stderr)
+				continue
+
 			isPseudo	= False
 		
 			if stringhit in spliceNotes:
 				print(f"{finalNames.get(stringhit, stringhit)}: {spliceNotes[stringhit]}", file=sys.stderr)
-
-			if stringhit in geneStatus:
+				continue
+			elif stringhit in geneStatus:
 				print(f"{finalNames.get(stringhit, stringhit)} marked as a pseudogene due to {geneStatus[stringhit]}", file=sys.stderr)
 				isPseudo = True
 			elif stringhit in geneStatus2:

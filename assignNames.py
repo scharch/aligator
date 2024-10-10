@@ -12,6 +12,8 @@ Note that while naming of novel "alleles" (within 5% of a known allele) should
 
 Split out from annotator.py by Chaim A Schramm on 2024-04-17.
 Added debugging for V-region and commented out 133-142 by S Olubo & CA Schramm 2024-10-01
+Bug fix for mismatch cases and raised evalue threshold to capture short
+    D genes by CA Schramm 2024-10-09.
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -68,7 +70,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), genomeFile )
 				splicedSeq += str( Seq(rc).reverse_complement() )
 
-		seqDB[ g ] = splicedSeq
+		seqDB[ g ] = splicedSeq.upper()
 
 
 	#parse DB of coding alleles, if present
@@ -117,13 +119,13 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 							cSeqs[ imgtID.group() ][ exonID[0] ] = str( seq.seq )
 						else:
 							#multiple or no matches - just assume it is full-length and move on
-							seqDB[ imgtID.group() ] = str( seq.seq )
+							seqDB[ imgtID.group() ] = str( seq.seq ).upper()
 					else:
-						seqDB[ imgtID.group() ] = str( seq.seq )
+						seqDB[ imgtID.group() ] = str( seq.seq ).upper()
 
 		#put any C exons back together
 		for allele in cSeqs:
-			seqDB[ allele ] = "".join([ cSeqs[allele].get(e,"") for e in cExonOrder ])
+			seqDB[ allele ] = "".join([ cSeqs[allele].get(e,"") for e in cExonOrder ]).upper()
 
 
 
@@ -142,7 +144,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 		# 		splicedSeq += str( Seq(rc).reverse_complement() )
 
 		#check for exact match in database
-		exactMatches = { k:v for k,v in seqDB.items() if v in splicedSeq or splicedSeq in v }
+		exactMatches = { k:v for k,v in seqDB.items() if v.upper() in splicedSeq or splicedSeq in v.upper() }
 
 		#multiple exact matches probably means a duplication of some sort in the reference
 		#  print a warning and then choose arbitrarily
@@ -170,7 +172,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 				fh2.write( f">query\n{splicedSeq}" )
 			blastOnly( blast, "annoTemp/nameDB.fa", "annoTemp/nameQuery.fa",
 							"annoTemp/nameResult.txt", outformat="6 sseqid pident", 
-							minPctID='75', maxTarget='1', maxHSP='1' )
+							evalue='10', minPctID='75', maxTarget='1', maxHSP='1' )
 
 			#read in blast hit
 			with open("annoTemp/nameResult.txt", 'r') as handle:
