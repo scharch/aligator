@@ -46,6 +46,7 @@ Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
 Sorted GFF and fasta output by CASchramm 2024-11-05.
 Fixed GFF3 format compatibility by CASchramm 2024-11-06.
 Added optional ORF/P fasta output by CASchramm 2024-11-06.
+Added checking of gene/exon/RSS boundaries by CASchramm 2024-11-06.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -200,9 +201,9 @@ def main():
 			statusDict = { "\t".join(hit[0:6]):{'type':'F','notes':[]} for hit in blastHits }
 	
 		# 3. Check splice sites and recover exons
-		mappedExons, statusDict = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
-																				arguments['CONTIGS'], gene, arguments['--blast'], 
-																				arguments['--alleledb'], statusDict )
+		mappedExons, geneBoundaries, statusDict = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
+																						arguments['CONTIGS'], gene, arguments['--blast'], 
+																						arguments['--alleledb'], selectedRSS, statusDict )
 
 		# 4. Check functionality
 		splicedSequences, statusDict = checkFunctionality( mappedExons, arguments['CONTIGS'], SOURCE_DIR,
@@ -239,17 +240,17 @@ def main():
 				gType = f"{arguments['LOCUS'][0:2]}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
 
-			gffRows.append( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
+			gffRows.append( [ b[0], "ALIGaToR", gType, geneBoundaries[stringhit]['start'], geneBoundaries[stringhit]['stop'], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 
 			for rss in selectedRSS.get( stringhit, [] ):
 				if len(rss)==0: continue # D gene with 3' RSS only
-				gffRows.append( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"Parent={finalNames[stringhit]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
+				gffRows.append( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, int(rss[2]), rss[4], rss[5], ".", f"Parent={finalNames[stringhit]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
 				exon_name=exon[3].split()
 				if exon_name[1] == "V-Region":
-					gffRows.append( [ exon[0], "ALIGaToR", "V_region", int(exon[1])+1, exon[2], ".", exon[5], "0", f"Parent={finalNames[stringhit]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
+					gffRows.append( [ exon[0], "ALIGaToR", "V_region", int(exon[1])+1, int(exon[2]), ".", exon[5], "0", f"Parent={finalNames[stringhit]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 				else:
-					gffRows.append( [ exon[0], "ALIGaToR", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"Parent={finalNames[stringhit]};exontype={exon_name[1]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
+					gffRows.append( [ exon[0], "ALIGaToR", eType, int(exon[1])+1, int(exon[2]), ".", exon[5], ".", f"Parent={finalNames[stringhit]};exontype={exon_name[1]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
 			if statusDict[stringhit]['type']=="F":
@@ -257,10 +258,10 @@ def main():
 				if stringhit in novelA: funcNa += 1
 
 				#create and save a SeqRecord
-				sequences.append( { 'pos':int(b[1]), 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
+				sequences.append( { 'pos':geneBoundaries[stringhit]['start'], 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
 
 			elif arguments['--nonfunctional'] is not None and stringhit in splicedSequences:
-				nfseqs.append( { 'pos':int(b[1]), 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
+				nfseqs.append( { 'pos':geneBoundaries[stringhit]['start'], 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
 
 		# 6c. Print some statistics
 		num_pseudo = len( [ g for g in statusDict if statusDict[g]['type']=="P" ] )

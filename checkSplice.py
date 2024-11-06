@@ -17,6 +17,7 @@ Fixed start position numbering for D/J genes and removed splice checking for
 Fixed exon type regex by CA Schramm 2024-10-09.
 Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
 Fixed GFF3 format compatibility by CASchramm 2024-11-06.
+Added checking of gene/exon/RSS boundaries by CASchramm 2024-11-06.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -86,11 +87,12 @@ def exons2bed( gff ):
 	return bed
 
 
-def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq, status ):
+def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq, rss, status ):
 
 	from aligator import blast2bed, quickAlign, GAPPED_CODON_TABLE
 
 	results = dict()
+	geneBoundaries = dict()
 	targetBed = BedTool(bedfile)
 	#iterate through hits
 	for h in hits:
@@ -155,7 +157,6 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq,
 		# also check if the ends of the alignment are missing
 		incomplete = False
 		if gene != "D":
-			missingExons = []
 			for i in range(len(finalExons)):
 
 				if "V-Region" in finalExons[i].name:
@@ -210,6 +211,68 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq,
 			status[ stringhit ] = { 'type':'drop', 'notes':["no exons found"] }
 			continue
 
+		#check/fix gene and exon boundaries
+		if stringhit in rss:
+			if gene == "V":
+				if h.strand == "+":
+					for i in range(len(mapped)):
+						if "V-Region" in mapped[i].name or "V-exon" in mapped[i].name:
+							if mapped[i].stop != int(rss[stringhit][0][1]):
+								print( f"Adjusting {mapped[i].name} stop position from {mapped[i].stop} to {rss[stringhit][0][1]} to account for RSS detection", file=sys.stderr )
+								mapped[i].stop = int(rss[stringhit][0][1])
+					geneBoundaries[ stringhit ] = { 'start':min([e.start for e in mapped])+1, 'stop':int(rss[stringhit][0][2]) }
+				else:
+					for i in range(len(mapped)):
+						if "V-Region" in mapped[i].name or "V-exon" in mapped[i].name:
+							if mapped[i].start != int(rss[stringhit][0][2]):
+								print( f"Adjusting {mapped[i].name} start position from {mapped[i].start} to {rss[stringhit][0][2]} to account for RSS detection", file=sys.stderr )
+								mapped[i].start = int(rss[stringhit][0][2])
+					geneBoundaries[ stringhit ] = { 'start':int(rss[stringhit][0][1])+1, 'stop':max([e.stop for e in mapped]) }
+
+			elif gene == "D":
+				geneStart = mapped[0].start+1
+				geneStop  = mapped[0].stop
+				if h.strand == "+":
+					if len(rss[stringhit][0]) > 0: #make sure 5' RSS was detected
+						if mapped[0].start != int(rss[stringhit][0][2]):
+							print( f"Adjusting {mapped[0].name} start position from {mapped[0].start} to {rss[stringhit][0][2]} to account for RSS detection", file=sys.stderr )
+							mapped[0].start = int(rss[stringhit][0][2])
+						geneStart = int(rss[stringhit][0][1])+1
+					if len(rss[stringhit]) > 1: #3' RSS detected
+						if mapped[0].stop != int(rss[stringhit][1][1]):
+							print( f"Adjusting {mapped[0].name} stop position from {mapped[0].stop} to {rss[stringhit][1][1]} to account for RSS detection", file=sys.stderr )
+							mapped[0].stop = int(rss[stringhit][1][1])
+						geneStop = int(rss[stringhit][1][2])
+				else:
+					if len(rss[stringhit][0]) > 0: #make sure 5' RSS was detected
+						if mapped[0].stop != int(rss[stringhit][0][1]):
+							print( f"Adjusting {mapped[0].name} stop position from {mapped[0].stop} to {rss[stringhit][0][1]} to account for RSS detection", file=sys.stderr )
+							mapped[0].stop = int(rss[stringhit][0][1])
+						geneStop = int(rss[stringhit][0][2])
+					if len(rss[stringhit]) > 1: #3' RSS detected
+						if mapped[0].start != int(rss[stringhit][1][2]):
+							print( f"Adjusting {mapped[0].name} start position from {mapped[0].start} to {rss[stringhit][1][2]} to account for RSS detection", file=sys.stderr )
+							mapped[0].start = int(rss[stringhit][1][2])
+						geneStart = int(rss[stringhit][1][1])+1
+				geneBoundaries[ stringhit ] = { 'start':geneStart, 'stop':geneStop }
+
+			elif gene == "J":
+				if h.strand == "+":
+					if mapped[0].start != int(rss[stringhit][0][2]):
+						print( f"Adjusting {mapped[0].name} start position from {mapped[0].start} to {rss[stringhit][0][2]} to account for RSS detection", file=sys.stderr )
+						mapped[0].start = int(rss[stringhit][0][2])
+					geneBoundaries[ stringhit ] = { 'start':int(rss[stringhit][0][1])+1, 'stop':mapped[0].stop }
+				else:
+					if mapped[0].stop != int(rss[stringhit][0][1]):
+						print( f"Adjusting {mapped[0].name} stop position from {mapped[0].stop} to {rss[stringhit][0][1]} to account for RSS detection", file=sys.stderr )
+						mapped[0].stop = int(rss[stringhit][0][1])
+					geneBoundaries[ stringhit ] = { 'start':mapped[0].start+1, 'stop':int(rss[stringhit][0][2]) }
+
+		else: #C/no rss
+			#just use min/max of exon(s)
+			geneBoundaries[ stringhit ] = { 'start':min([e.start for e in mapped])+1, 'stop':max([e.stop for e in mapped]) }
+
+
 		#J and C: extract post/pre nt to verify splicing
 		if gene == "J":
 			if h.strand == "+":
@@ -236,4 +299,4 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq,
 
 		results[ stringhit ] = mapped
 
-	return results, status
+	return results, geneBoundaries, status
