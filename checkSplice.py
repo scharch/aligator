@@ -15,6 +15,7 @@ Added debugging for V-region by S Olubo & CA Schramm 2024-10-01
 Fixed start position numbering for D/J genes and removed splice checking for
     D genes by CA Schramm 2024-10-09.
 Fixed exon type regex by CA Schramm 2024-10-09.
+Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -73,19 +74,16 @@ def mapExons(e, posDict, source ):
 	return e
 
 
-def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq ):
+def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq, status ):
 
 	from aligator import blast2bed, quickAlign, GAPPED_CODON_TABLE
 
 	results = dict()
-	reasons = dict()
-	notes   = dict()
 	targetBed = BedTool(bedfile)
 	#iterate through hits
 	for h in hits:
 
 		stringhit =	"\t".join(h[0:6])
-		pseudo = False
 
 		#check if at least one of the hits has annotated exons
 		names = re.sub(" .*$","",h.name).split(",")
@@ -132,8 +130,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 
 		#check for splice sites for gaps and proper motifs
 		# also check if the ends of the alignment are missing
-		incomplete5 = False
-		incomplete3 = False
+		incomplete = False
 		if gene != "D":
 			missingExons = []
 			for i in range(len(finalExons)):
@@ -144,16 +141,18 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 				if i > 0: #C acceptor handled below
 					acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
 					if not acceptor.endswith("AG"):# or acceptor.endswith("AC"):
-						pseudo = True
-						reasons[ stringhit ] = f"noncanonical splice acceptor {acceptor[-2:]}" #"a bad splice acceptor"
-						#break
+						status[ stringhit ][ 'type' ] = "ORF"
+						status[ stringhit ][ 'notes' ].append( f"noncanonical splice acceptor {acceptor[-2:]}" )
 
 				if posDict[ finalExons[i].start ]['gap']:
 					if i==0:
-						notes[ stringhit ] = f"incomplete 5' end"
-						incomplete5 = True
+						status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 5' end"] }
+						incomplete = True
+						break
 					else:
-						notes[ stringhit ] = f"splice acceptor in alignment gap in exon {i+1}"
+						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice acceptor in alignment gap in exon {i+1}"] }
+						incomplete = True
+						break
 
 				if i < len(finalExons)-1: #J donor handled below
 					donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
@@ -162,16 +161,21 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 							warnings.simplefilter('ignore', BiopythonWarning)
 							if not (gene=="C" and Seq(donor).translate().startswith("*")):
 								#assume a stop codon at an exon boundary is always CHS...
-								pseudo = True
-								reasons[ stringhit ] = f"noncanonical splice donor {donor[0:2]}" #"a bad splice donor"
-								#break
+								status[ stringhit ][ 'type' ] = "ORF"
+								status[ stringhit ][ 'notes' ].append( f"noncanonical splice donor {donor[0:2]}" )
 
 				if posDict[ finalExons[i].stop ]['gap']:
 					if i==len(finalExons)-1:
-						notes[ stringhit ] = f"incomplete 3' end"
-						incomplete3 = True
+						status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 3' end"] }
+						incomplete = True
+						break
 					else:
-						notes[ stringhit ] = f"splice donor in alignment gap in exon {i+1}"
+						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice donor in alignment gap in exon {i+1}"] }
+						incomplete = True
+						break
+
+		if incomplete:
+			continue
 
 		# update coordinates/names to contig being annotated
 		mapped = finalExons.each( mapExons, posDict, h ).saveas()
@@ -180,34 +184,33 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq 
 		#remove exons that are empty
 		mapped = [ mapped[i] for i in range(len(mapped)) if mapped[i].stop - mapped[i].start > 1 ]
 		if len(mapped)==0:
-			notes[ stringhit ] = "seems to be a spurious blast hit"
+			status[ stringhit ] = { 'type':'drop', 'notes':["no exons found"] }
 			continue
 
 		#J and C: extract post/pre nt to verify splicing
-		#  but don't bother if we've already marked the ends as missing
-		if gene == "J" and not incomplete3:
+		if gene == "J":
 			if h.strand == "+":
 				s = BedTool.seq((mapped[0].chrom,mapped[0].stop,mapped[0].stop+2), contigs )
 				if not s == "GT":
-					pseudo = True
-					reasons[ stringhit ] = "a bad splice donor"
+					status[ stringhit ][ 'type' ] = "ORF"
+					status[ stringhit ][ 'notes' ].append( "noncanonical J splice donor" )
 			else:
 				s = BedTool.seq((mapped[0].chrom,mapped[0].start-2,mapped[0].start), contigs )
 				if not s == "AC":
-					pseudo = True
-					reasons[ stringhit ] = "a bad splice donor"
-		elif gene == "C" and not incomplete5:
+					status[ stringhit ][ 'type' ] = "ORF"
+					status[ stringhit ][ 'notes' ].append( "noncanonical J splice donor" )
+		elif gene == "C":
 			if h.strand == "+":
 				s = BedTool.seq((mapped[0].chrom,mapped[0].start-2,mapped[0].start), contigs )
 				if not s == "AG":
-					pseudo = True
-					reasons[ stringhit ] = "a bad splice acceptor"
+					status[ stringhit ][ 'type' ] = "ORF"
+					status[ stringhit ][ 'notes' ].append( "noncanonical C splice acceptor" )
 			else:
 				s = BedTool.seq((mapped[len(mapped)-1].chrom,mapped[len(mapped)-1].stop,mapped[len(mapped)-1].stop+2), contigs )
 				if not s == "CT":
-					pseudo = True
-					reasons[ stringhit ] = "a bad splice acceptor"
+					status[ stringhit ][ 'type' ] = "ORF"
+					status[ stringhit ][ 'notes' ].append( "noncanonical C splice acceptor" )
 
 		results[ stringhit ] = mapped
 
-	return results, reasons, notes
+	return results, status

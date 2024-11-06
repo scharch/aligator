@@ -7,8 +7,8 @@ This script checks for start/stop codons and expected invariants.
 
 Split out from annotator.py by Chaim A Schramm on 2024-04-16.
 Correction for TRxC splicing by CA Scrhamm on 2014-04-17
-
 Added debugging for V-region by S Olubo & CA Schramm 2024-10-01
+Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -49,14 +49,11 @@ def checkInvariants( align, locus, gene ):
 
 
 
-def checkFunctionality( exonDict, contigs, directory, locus, gene):
+def checkFunctionality( exonDict, contigs, directory, locus, gene, status):
 
 	from aligator import quickAlign, GAPPED_CODON_TABLE
 
-	status  = dict()
 	seqdict = dict()
-	mutatedInvar = 0
-	stopCodon = 0
 
 	for stringhit, exonList in exonDict.items():
 		
@@ -89,22 +86,23 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 		#		Align and check for invariants
 		if gene == "V":
 			if splicedSeq[0:3] != "ATG":
-				status[ stringhit ] = "pseudogene due to missing/incorrect start codon"
+				status[ stringhit ] = { 'type':'P', 'notes':["missing/incorrect start codon"] }
+				continue
 			else:
 				with warnings.catch_warnings():
 					warnings.simplefilter('ignore', BiopythonWarning)
 					splicedAA = Seq( splicedSeq ).translate(table=GAPPED_CODON_TABLE)
 				if "*" in splicedAA:
-					stopCodon += 1
-					status[ stringhit ] = "pseudogene due to an internal stop codon"
+					status[ stringhit ] = { 'type':'P', 'notes':["internal stop codon"] }
+					continue
 				else:
 					with open( f"{directory}/{locus}{gene}.fa", 'r' ) as refHandle:
 						refSeq = SeqIO.read(refHandle, 'fasta')
 					align = quickAlign( refSeq, SeqRecord(splicedAA) )
 					invar = checkInvariants( align, locus, gene )
 					if not invar:
-						mutatedInvar += 1
-						status[ stringhit ] = "pseudogene due to a missing invariant residue"
+						status[ stringhit ][ 'type' ] = "ORF"
+						status[ stringhit ][ 'notes' ].append( "missing invariant residue" )
 
 		# 4c. J gene: no guarantee of frame so align in nt space
 		#		Then translate and check for stop codons/invariant
@@ -117,13 +115,13 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 				align['ref']  = str( Seq(align['ref'] ).translate(table=GAPPED_CODON_TABLE) )
 				align['test'] = str( Seq(align['test']).translate(table=GAPPED_CODON_TABLE) )
 			if "*" in align['test']:
-				stopCodon += 1
-				status[ stringhit ] = "pseudogene due to an internal stop codon"
+				status[ stringhit ] = { 'type':'P', 'notes':["internal stop codon"] }
+				continue
 			else:
 				invar = checkInvariants( align, locus, gene )
 				if not invar:
-					mutatedInvar += 1
-					status[ stringhit ] = "pseudogene due to a missing invariant residue"
+					status[ stringhit ][ 'type' ] = "ORF"
+					status[ stringhit ][ 'notes' ].append( "missing invariant residue" )
 
 		# 4d. C gene, need to check secreted and membrane-bound CDSs separately.
 		#          Push each into frame and translate to check for stop codons.
@@ -145,8 +143,8 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 						warnings.simplefilter('ignore', BiopythonWarning)
 						splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
 					if "*" in splicedAA:
-						stopCodon += 1
-						status[ stringhit ] = "pseudogene due to an internal stop codon"
+						status[ stringhit ] = { 'type':'P', 'notes':["internal stop codon"] }
+						continue
 
 			else:
 				#only loop if there are multiple exons found
@@ -164,8 +162,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene):
 						warnings.simplefilter('ignore', BiopythonWarning)
 						splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
 					if "*" in splicedAA:
-						stopCodon += 1
-						status[ stringhit ] = "pseudogene due to an internal stop codon"
+						status[ stringhit ] = { 'type':'P', 'notes':["internal stop codon"] }
 						break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
 
-	return status, seqdict, stopCodon, mutatedInvar
+	return seqdict, status

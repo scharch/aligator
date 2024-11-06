@@ -40,6 +40,8 @@ Added debug option by CA Schramm 2024-05-28.
 Added check for missing terminal bases by S Olubo & CA Schramm 2024-09-26.
 Minor tweaks for D handling by CA Schramm 2024-10-09.
 Prevent "V-Region" from being labeled as an exon  by CA Schramm 2024-10-09.
+Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
+Sorted GFF and fasta output by CASchramm 2024-11-05.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -50,8 +52,9 @@ import sys, os, re, csv, shutil
 from docopt import docopt
 from pybedtools import BedTool
 from collections import defaultdict, Counter
-from Bio import BiopythonWarning
+from operator import itemgetter
 import warnings
+from Bio import BiopythonWarning
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from Bio.Seq import Seq
@@ -78,6 +81,7 @@ def main():
 
 	# 0b. Prep output
 	sequences = []
+	gffRows = []
 	mode = 'w'
 	if arguments['LOCUS'] == "TRD":
 		mode = "a"
@@ -159,32 +163,38 @@ def main():
 				continue							
 
 		# 2. Match hits with RSS predictions and do some sanity checking
-		if (arguments['LOCUS']=="IGH" and (gene=="V" or gene=="J")) or (arguments['LOCUS']=="IGK" and gene=="J") or (arguments['LOCUS']=="IGL" and gene=="V") or (arguments['LOCUS']=="TRA" and gene=="V") or (arguments['LOCUS']=="TRD" and gene=="V") or (arguments['LOCUS']=="TRB" and gene=="V"):
+		if ( (gene=="V" and arguments['LOCUS'] in ["IGH","IGL","TRA","TRB","TRD"]) or
+			  (gene=="J" and arguments['LOCUS'] in ["IGH","IGK"]) ):
 			rss23 = BedTool( arguments['RSS23'] )
-			selectedRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+			selectedRSS, statusDict = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
 		elif (arguments['LOCUS'] in ['TRB','TRD'] and gene =='D'):
 			#5' RSS12
 			rss12 = BedTool( arguments['RSS12'] )
-			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+			selectedRSS, statusDict = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
 
 			#3' RS23
 			rss23 = BedTool( arguments['RSS23'] )
-			tempRSS = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
+			tempRSS, tempStatus = parseRSS( blastHits, rss23, 'rss23', gene, arguments['LOCUS'] )
 			for hit in tempRSS:
 				selectedRSS[ hit ].append(tempRSS[hit][1])
-		else:
+				if tempStatus[ hit ]['type'] == "ORF":
+					statusDict[ hit ]['type'] = "ORF"
+					statusDict[ hit ]['notes'].append( tempStatus[hit]['notes'] )
+		elif gene != "C":
 			rss12 = BedTool( arguments['RSS12'] )
-			selectedRSS = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
-			
+			selectedRSS, statusDict = parseRSS( blastHits, rss12, 'rss12', gene, arguments['LOCUS'] )
+		else:
+			#C gene, no RSS but have to initiate statusDict
+			statusDict = { "\t".join(hit[0:6]):{'type':'F','notes':[]} for hit in blastHits }
 	
 		# 3. Check splice sites and recover exons
-		mappedExons, geneStatus, spliceNotes = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
+		mappedExons, statusDict = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
 																				arguments['CONTIGS'], gene, arguments['--blast'], 
-																				arguments['--alleledb'] )
+																				arguments['--alleledb'], statusDict )
 
 		# 4. Check functionality
-		geneStatus2, splicedSequences, stopCodon, mutatedInvar = checkFunctionality( mappedExons, arguments['CONTIGS'], 
-																												SOURCE_DIR, arguments['LOCUS'], gene )
+		splicedSequences, statusDict = checkFunctionality( mappedExons, arguments['CONTIGS'], SOURCE_DIR,
+																				arguments['LOCUS'], gene, statusDict )
 
 		# 5. Figure out naming
 		finalNames, novelG, novelA = assignNames( splicedSequences, arguments['CONTIGS'], targets, arguments['TARGETGENOME'], 
@@ -194,73 +204,75 @@ def main():
 		funcNg = 0
 		funcNa = 0
 
-		# 6. Check if this needs to be labeled as a pseudogene and write GFF output
-		#        I don't see an obvious way to mark genes with missing RSS as "ORF" using the Sequence Ontology as required by
-		#        GFF3 format, but --on the other hand-- if splice sites are conserved and there are no stop codons, then that
-		#        actually seems like pretty good evidence it's a functional gene and most likely a false negative of the RSS
-		#        prediction. So I'm going to override the Ramesh et al category definitions on this one.
+		# 6. Collect output
 		for b in blastHits:
 
 			stringhit = "\t".join(b[0:6])
-
-			if gene=="D" and stringhit not in selectedRSS:
-				print(f"Discarding {finalNames.get(stringhit,stringhit)} because of no associated RSS", file=sys.stderr)
+			if stringhit not in statusDict:
+				print(f"Missing all info for {finalNames.get(stringhit,stringhit)}...?", file=sys.stderr)
 				continue
-
-			isPseudo	= False
-		
-			if stringhit in spliceNotes:
-				print(f"{finalNames.get(stringhit, stringhit)}: {spliceNotes[stringhit]}", file=sys.stderr)
+			elif statusDict[ stringhit ][ 'type' ] == "drop":
+				print(f"Discarding {finalNames.get(stringhit,stringhit)} due to {'; '.join(statusDict[stringhit]['notes'])}", file=sys.stderr)
 				continue
-			elif stringhit in geneStatus:
-				print(f"{finalNames.get(stringhit, stringhit)} marked as a pseudogene due to {geneStatus[stringhit]}", file=sys.stderr)
-				isPseudo = True
-			elif stringhit in geneStatus2:
-				print(f"{finalNames.get(stringhit, stringhit)} marked as a {geneStatus2[stringhit]}", file=sys.stderr)
-				isPseudo = True
+			elif statusDict[ stringhit ][ 'type' ] == "ORF":
+				print(f"{finalNames.get(stringhit,stringhit)} marked as ORF due to {'; '.join(statusDict[stringhit]['notes'])}", file=sys.stderr)
+			elif statusDict[ stringhit ][ 'type' ] == "P":
+				print(f"{finalNames.get(stringhit,stringhit)} marked as pseudogene due to {'; '.join(statusDict[stringhit]['notes'])}", file=sys.stderr)
+
 
 			# 6a. GFF output
 			gType = f"{arguments['LOCUS']}_{gene}_gene" 
 			eType = "exon"
-			if isPseudo:
+			if statusDict[stringhit]['type']=="P":
 				gType = f"{arguments['LOCUS']}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
+			elif statusDict[stringhit]['type']=="ORF":
+				gType = f"{arguments['LOCUS']}_{gene}_ORF"
+				eType = "ORF_exon"
 
-			gffwriter.writerow( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')}" ] )
+			gffRows.append( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')}" ] )
+
 			for rss in selectedRSS.get( stringhit, [] ):
 				if len(rss)==0: continue # D gene with 3' RSS only
-				gffwriter.writerow( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalNames[stringhit]}" ] )
+				gffRows.append( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalNames[stringhit]}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
 				exon_name=exon[3].split()
 				if exon_name[1] != "V-Region":
 					exon_name[1] += f"-{eType}"
-				gffwriter.writerow( [ exon[0], "ALIGaToR", exon_name[1], int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalNames[stringhit]}" ] )
+				gffRows.append( [ exon[0], "ALIGaToR", exon_name[1], int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalNames[stringhit]}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
-			if not isPseudo:
+			if statusDict[stringhit]['type']=="F":
 				if stringhit in novelG: funcNg += 1
 				if stringhit in novelA: funcNa += 1
 
 				#create and save a SeqRecord
-				sequences.append( SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") )
+				sequences.append( { 'pos':int(b[1]), 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
 
-		num_pseudo = len(set(geneStatus).union(set(geneStatus2)))
 		# 6c. Print some statistics
-		print( f"{arguments['LOCUS']}{gene}: {len(blastHits)} genes found; {len(selectedRSS)} had predicted RSSs.")
-		print( f"      {num_pseudo} are labeled as pseudogene")
-		print( f"      Of {len(mappedExons)-num_pseudo} functional genes, {funcNg} functional novel ASCs were detected and {funcNa} functional new alleles were reported" )
+		num_pseudo = len( [ g for g in statusDict if statusDict[g]['type']=="P" ] )
+		num_orf    = len( [ g for g in statusDict if statusDict[g]['type']=="ORF" ] )
+		num_func   = len( [ g for g in statusDict if statusDict[g]['type']=="F" ] )
+		print( f"{arguments['LOCUS']}{gene}: {num_pseudo+num_orf+num_func} genes found; {num_func} are predicted to be functional.")
+		print( f"      {num_pseudo} are labeled as pseudogenes; {num_orf} are labeled as ORFs")
+		print( f"      Of {num_func} functional genes, {funcNg} functional novel ASCs were detected and {funcNa} functional new alleles were reported" )
 	
-	# 7. Finish outputs and clean up
+	# 6d. Print outputs to file
+	gffRows.sort(key=itemgetter(4), reverse=True)
+	gffRows.sort(key=itemgetter(3))
+	for row in gffRows:
+		gffwriter.writerow(row)
 	gffhandle.close()
 	with open(arguments['--outfasta'], 'w') as fasta_handle:
-		SeqIO.write( sequences, fasta_handle, 'fasta' )
+		sequences.sort( key=itemgetter('pos') )
+		SeqIO.write( [ s['seq'] for s in sequences ], fasta_handle, 'fasta' )
 		
-	# if we were annotating TRD, add it back to previous TRA results
+	# 7. if we were annotating TRD, add it back to previous TRA results
 	if arguments['LOCUS'] == 'TRD':
 		newAnnotations = parseTRA(arguments['--outgff'])
 		newAnnotations.saveas(arguments['--outgff'])
 
-	# clean up
+	# 8. clean up
 	shutil.rmtree("annoTemp")
 
 	# If this was TRA, we now need to go back and hit TRD, since it is within the TRA locus
