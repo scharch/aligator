@@ -45,6 +45,7 @@ Prevent "V-Region" from being labeled as an exon  by CA Schramm 2024-10-09.
 Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
 Sorted GFF and fasta output by CASchramm 2024-11-05.
 Fixed GFF3 format compatibility by CASchramm 2024-11-06.
+Added optional ORF/P fasta output by CASchramm 2024-11-06.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
