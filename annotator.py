@@ -42,6 +42,7 @@ Minor tweaks for D handling by CA Schramm 2024-10-09.
 Prevent "V-Region" from being labeled as an exon  by CA Schramm 2024-10-09.
 Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
 Sorted GFF and fasta output by CASchramm 2024-11-05.
+Fixed GFF3 format compatibility by CASchramm 2024-11-06.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -50,7 +51,7 @@ All rights reserved.
 
 import sys, os, re, csv, shutil
 from docopt import docopt
-from pybedtools import BedTool
+from pybedtools import BedTool, featurefuncs
 from collections import defaultdict, Counter
 from operator import itemgetter
 import warnings
@@ -77,6 +78,7 @@ def main():
 	try:
 		os.makedirs( "annoTemp" )
 	except FileExistsError:
+		sys.stderr = sys.__stderr__
 		sys.exit( "Error: Are you trying to run multiple annotations at the same time?\n\tIf not, please remove existing 'annoTemp' directory and try again.")
 
 	# 0b. Prep output
@@ -87,6 +89,10 @@ def main():
 		mode = "a"
 	gffhandle = open( arguments['--outgff'], mode )
 	gffwriter = csv.writer( gffhandle, delimiter="\t", lineterminator="\n" )
+	gffwriter.writerow(["##gff-version 3"])
+	with open( arguments['CONTIGS'], 'r' ) as seqIn:
+		for seq in SeqIO.parse( seqIn, 'fasta' ):
+			gffwriter.writerow([f"##sequence-region {seq.id} 1 {len(seq.seq)}"])
 
 
 	## THE PIPELINE GETS RUN SEPARATELY FOR EACH GENE IN THE LOCUS
@@ -98,9 +104,11 @@ def main():
 
 		# 1a. Generate a search database from target genome
 		targets     = BedTool( arguments['TARGETBED'] )
-		geneTargets = targets.filter(
-									lambda x: f"{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name
-									).sequence( fi=arguments['TARGETGENOME'],
+		target2  = targets.filter( lambda x: f"{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name ).saveas()
+		if targets.file_type == "gff":
+			target2  = targets.filter( lambda x: x['functionality']=="F" and f"{arguments['LOCUS']}{gene}" in x.name and x[2].endswith("gene") ).each( featurefuncs.gff2bed ).saveas()
+
+		geneTargets = target2.sequence( fi=arguments['TARGETGENOME'],
 												fo=f"annoTemp/targets_{arguments['LOCUS']}{gene}.fa",
 					 							name=True, s=True)
 
@@ -221,25 +229,23 @@ def main():
 
 
 			# 6a. GFF output
-			gType = f"{arguments['LOCUS']}_{gene}_gene" 
+			gType = f"{arguments['LOCUS'][0:2]}_{gene}_gene" 
 			eType = "exon"
 			if statusDict[stringhit]['type']=="P":
-				gType = f"{arguments['LOCUS']}_{gene}_pseudogene" 
+				gType = f"{arguments['LOCUS'][0:2]}_{gene}_pseudogene" 
 				eType = "pseudogenic_exon"
-			elif statusDict[stringhit]['type']=="ORF":
-				gType = f"{arguments['LOCUS']}_{gene}_ORF"
-				eType = "ORF_exon"
 
-			gffRows.append( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')}" ] )
+			gffRows.append( [ b[0], "ALIGaToR", gType, int(b[1])+1, b[2], ".", b[5], ".", f"ID={finalNames.get(stringhit, 'NA')};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 
 			for rss in selectedRSS.get( stringhit, [] ):
 				if len(rss)==0: continue # D gene with 3' RSS only
-				gffRows.append( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"parent={finalNames[stringhit]}" ] )
+				gffRows.append( [ rss[0], "ALIGaToR", rss[6], int(rss[1])+1, rss[2], rss[4], rss[5], ".", f"Parent={finalNames[stringhit]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 			for exon in mappedExons.get( stringhit, [] ):
 				exon_name=exon[3].split()
-				if exon_name[1] != "V-Region":
-					exon_name[1] += f"-{eType}"
-				gffRows.append( [ exon[0], "ALIGaToR", exon_name[1], int(exon[1])+1, exon[2], ".", exon[5], ".", f"parent={finalNames[stringhit]}" ] )
+				if exon_name[1] == "V-Region":
+					gffRows.append( [ exon[0], "ALIGaToR", "V_region", int(exon[1])+1, exon[2], ".", exon[5], "0", f"Parent={finalNames[stringhit]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
+				else:
+					gffRows.append( [ exon[0], "ALIGaToR", eType, int(exon[1])+1, exon[2], ".", exon[5], ".", f"Parent={finalNames[stringhit]};exontype={exon_name[1]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
 			if statusDict[stringhit]['type']=="F":

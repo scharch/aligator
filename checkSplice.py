@@ -16,13 +16,14 @@ Fixed start position numbering for D/J genes and removed splice checking for
     D genes by CA Schramm 2024-10-09.
 Fixed exon type regex by CA Schramm 2024-10-09.
 Refactored and rationalized functionality calls by CA Schramm 2024-11-05.
+Fixed GFF3 format compatibility by CASchramm 2024-11-06.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
 """
 
-from pybedtools import BedTool
+from pybedtools import BedTool, featurefuncs
 import warnings
 from Bio import BiopythonWarning
 from Bio import SeqIO
@@ -74,6 +75,17 @@ def mapExons(e, posDict, source ):
 	return e
 
 
+def exons2bed( gff ):
+	bed = featurefuncs.gff2bed( gff )
+
+	if gff[2] == "V_Region":
+		bed.name = bed.name + " V-Region"
+	elif gff[2] == "exon":
+		bed.name = bed.name + f" {gff['exontype']}-exon"
+
+	return bed
+
+
 def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq, status ):
 
 	from aligator import blast2bed, quickAlign, GAPPED_CODON_TABLE
@@ -86,17 +98,28 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq,
 		stringhit =	"\t".join(h[0:6])
 
 		#check if at least one of the hits has annotated exons
-		names = re.sub(" .*$","",h.name).split(",")
+		names = re.sub("[:\s].*$","",h.name).split(",")
 		exons = targetBed.filter(lambda x: names[0] in x.name and ("exon" in x.name or "V-Region" in x.name)).saveas()
 		fullGene = targetBed.filter(lambda x: names[0] in x.name and "gene" in x.name).saveas()
+		if targetBed.file_type == "gff":
+			exons = targetBed.filter(lambda x: x.name==names[0] and x[2] in ["exon","V-Region"]).each( exons2bed ).saveas()
+			fullGene = targetBed.filter(lambda x: x.name==names[0] and x[2].endswith("gene")).each( featurefuncs.gff2bed ).saveas()	
+
+		if len(fullGene) == 0:
+			print( f"Warning: could not extract gene {names[0]} for {stringhit}, skipping...", file=sys.stderr )
+			continue
 
 		#now get sequences and align them
 		s = BedTool([h]).sequence(fi=contigs,fo="annoTemp/temp.fa",s=True)
 		with open("annoTemp/temp.fa",'r') as handle:
 			testSeq = SeqIO.read(handle, "fasta")
 		r = fullGene.sequence(fi=targetSeq,fo="annoTemp/ref.fa",s=True)
-		with open("annoTemp/ref.fa",'r') as handle:
-			refSeq = SeqIO.read(handle, "fasta")
+		try:
+			with open("annoTemp/ref.fa",'r') as handle:
+				refSeq = SeqIO.read(handle, "fasta")
+		except ValueError:
+			sys.stderr = sys.__stderr__
+			sys.exit( f"Error: multiple reference sequences with identical names: {names[0]}")
 		align = quickAlign(refSeq, testSeq)
 
 		#make sure the feature numbering corresponds to the extracted sequence

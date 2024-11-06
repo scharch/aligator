@@ -14,13 +14,14 @@ Split out from annotator.py by Chaim A Schramm on 2024-04-17.
 Added debugging for V-region and commented out 133-142 by S Olubo & CA Schramm 2024-10-01
 Bug fix for mismatch cases and raised evalue threshold to capture short
     D genes by CA Schramm 2024-10-09.
+Fixed GFF3 format compatibility by CASchramm 2024-11-06.
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
 """
 
-from pybedtools import BedTool
+from pybedtools import BedTool, featurefuncs
 from Bio import SeqIO
 from Bio.Seq import Seq
 import re, sys, csv
@@ -44,6 +45,9 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 	#start by extracting genomic sequences
 	#first get a list of unique gene names in the input bedfile
 	target_names = [ t.name for t in targets ]
+	if targets.file_type == "gff":
+		#remove pseudos
+		target_names = [ t.name for t in targets.filter( lambda x: x['functionality']=="F" ) ]
 	gene_ids     = set( re.match( f"{locus}{gene}\S+", n).group() for n in target_names if re.match( f"{locus}{gene}\S+", n) )
 
 
@@ -51,7 +55,10 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 	for g in gene_ids:
 
 		#some kludge to save them since the BedTool generator object produced by `filter` is weird
-		geneExons = targets.filter( lambda x: f"{g}" in x.name and "exon" in x.name )
+		geneExons = targets.filter( lambda x: f"{g}" in x.name and "exon" in x.name ).saveas()
+		if targets.file_type == "gff":
+			geneExons = targets.filter(lambda x: x.name==g and x[2]=="exon").each( featurefuncs.gff2bed ).saveas()
+
 		exonList = []
 		for e in geneExons:
 			exonList.append( e )
@@ -208,6 +215,14 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 				else:
 					newIDs[ stringhit ] = f"{geneParse.group(0)}-{seqHash}*01"
 					novelG.append(stringhit)
-					
+
+	#go back through 'final' names and break up any duplicates
+	rev_dict = defaultdict( list )
+	for k,v in newIDs.items():
+		rev_dict[v].append(k)
+	for dupes in rev_dict.values():
+		if len(dupes) > 1:
+			for i,d in enumerate(dupes):
+				newIDs[d] += f"_d{i}"					
 
 	return (newIDs, novelG, novelA)
