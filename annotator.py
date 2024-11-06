@@ -7,7 +7,7 @@ This script takes assembled genomic contigs from the Ig loci and looks for and
     annotates V/D/J/C genes based on comparison to a previous set of genomic
     annotations from the same or a related species. Requires BLAST and pybedtools.
 
-Usage: annotator.py CONTIGS RSS12 RSS23 LOCUS TARGETGENOME TARGETBED [ --alleledb coding.fa --outgff genes.gff --outfasta genes.fa --blast blastn --debug log ]
+Usage: annotator.py CONTIGS RSS12 RSS23 LOCUS TARGETGENOME TARGETBED [ options ]
 
 Options:
    CONTIGS                    - Assembled genomic contigs to be annotated in fasta format.
@@ -25,6 +25,8 @@ Options:
                                     [default: genes.gff]
    --outfasta genes.fa        - Where to save the extracted sequences of the annotated genes.
                                     [default: genes.fa]
+   --nonfunctional orf-p.fa   - Optional fasta file for saving sequences of genes annotated
+                                    as ORF or pseudogenes.
    --blast blastn             - Path to the `blastn` executable. [Default: blastn]
    --debug log                - Mangage program messages. Options are `quiet` (no messages),
                                     `log` (save everything to aligator.log file), or `verbose`
@@ -83,6 +85,7 @@ def main():
 
 	# 0b. Prep output
 	sequences = []
+	nfseqs = []
 	gffRows = []
 	mode = 'w'
 	if arguments['LOCUS'] == "TRD":
@@ -255,6 +258,9 @@ def main():
 				#create and save a SeqRecord
 				sequences.append( { 'pos':int(b[1]), 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
 
+			elif arguments['--nonfunctional'] is not None and stringhit in splicedSequences:
+				nfseqs.append( { 'pos':int(b[1]), 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
+
 		# 6c. Print some statistics
 		num_pseudo = len( [ g for g in statusDict if statusDict[g]['type']=="P" ] )
 		num_orf    = len( [ g for g in statusDict if statusDict[g]['type']=="ORF" ] )
@@ -272,6 +278,10 @@ def main():
 	with open(arguments['--outfasta'], 'w') as fasta_handle:
 		sequences.sort( key=itemgetter('pos') )
 		SeqIO.write( [ s['seq'] for s in sequences ], fasta_handle, 'fasta' )
+	if arguments['--nonfunctional'] is not None:
+		with open(arguments['--nonfunctional'], 'w') as fasta_handle:
+			nfseqs.sort( key=itemgetter('pos') )
+			SeqIO.write( [ s['seq'] for s in nfseqs ], fasta_handle, 'fasta' )
 		
 	# 7. if we were annotating TRD, add it back to previous TRA results
 	if arguments['LOCUS'] == 'TRD':
