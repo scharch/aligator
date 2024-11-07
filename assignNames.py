@@ -94,12 +94,12 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 				if not imgtID:
 					print( f"Cannot parse gene ID {seq.description}, skipping...", file=sys.stderr)
 					continue
-				elif imgtID.groups(1) != locus:
+				elif imgtID.group(1) != locus:
 					#skip silently
 					continue
-				elif gene == "C" and imgtID.groups(2) not in ['C','D','M','A','G','E']:
+				elif gene == "C" and imgtID.group(2) not in ['C','D','M','A','G','E']:
 					continue
-				elif gene != "C" and imgtID.groups(2) != gene:
+				elif gene != "C" and imgtID.group(2) != gene:
 					continue
 
 				if imgtID.group() in seqDB:
@@ -122,7 +122,6 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 							exonID.remove("CHS")
 
 						if len(exonID) == 1:
-							print( f"{imgtID.group()} {exonID[0]}", file=sys.stderr)
 							cSeqs[ imgtID.group() ][ exonID[0] ] = str( seq.seq )
 						else:
 							#multiple or no matches - just assume it is full-length and move on
