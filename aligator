@@ -21,6 +21,7 @@ Commands:
 	annotate   Use reference annotations and predicted RSS to annotate novel genomic sequences
 
 Created by Chaim A Schramm and Simone Olubo on 2024-04-15.
+Updates for predictRSS by CASchramm on 2024-11-14.
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -59,20 +60,27 @@ This script uses the DnaGrep application (Merelli et al NAR 2010) to predict the
 	developed by Cowell et al (Genome Biol 2002). It is part of the ALIGaToR immunogenetic
 	annotation suite.
 
-Usage: predictRSS.sh FASTA OUT
+Usage: predictRSS.sh FASTA OUT [ --species HS --min12 <num> --min23 <num> ]
 
 Options:
-   FASTA   Fasta file to predict
-   OUT     Header for output files
+   FASTA           Fasta file to predict
+   OUT             Header for output files
+   --species HS    Species for prediction model. Only HS and MM are
+                       recognized [default: HS]
+   --min12 <num>   Minimum RIC for an RSS12 [default: -38.81]
+   --min23 <num>   Minimum RIC for an RSS23 [default: -58.85]
 
 Output will be in BED format with names OUT.RSS12.bed and OUT.RSS23.bed
 
 Created by Chaim A Schramm on 2024-04-15.
+Tweaked RSS23 threshold slightly (seems to be a typo in the RSSsite 
+    online docs) by CA Schramm 2024-10-09.
+Added option to use mouse model and custom thresholds by CASchramm 2024-11-14
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved."""
 		newargs = docopt( predict_doc, argv=args['<args>'] )
-		run(['bash', f"{SOURCE_DIR}/predictRSS.sh", SOURCE_DIR, newargs['FASTA'], newargs['OUT']] )
+		run(['bash', f"{SOURCE_DIR}/predictRSS.sh", SOURCE_DIR, newargs['FASTA'], newargs['OUT'], newargs['--species'], newargs['--min12'], newargs['--min23']] )
 
 	elif args['<command>'] == 'annotate':
 		run(['python', f"{SOURCE_DIR}/annotator.py"] + args['<args>'])
