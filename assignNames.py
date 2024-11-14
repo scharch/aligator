@@ -15,6 +15,8 @@ Added debugging for V-region and commented out 133-142 by S Olubo & CA Schramm 2
 Bug fix for mismatch cases and raised evalue threshold to capture short
     D genes by CA Schramm 2024-10-09.
 Fixed GFF3 format compatibility by CASchramm 2024-11-06.
+Made --alleledb the default name source and reference annotations as a fallback
+    only by CA Schramm 2024-11-14
 
 Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -51,35 +53,6 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 	gene_ids     = set( re.match( f"{locus}{gene}\S+", n).group() for n in target_names if re.match( f"{locus}{gene}\S+", n) )
 
 
-	#now extract the exons for each one in turn
-	for g in gene_ids:
-
-		#some kludge to save them since the BedTool generator object produced by `filter` is weird
-		geneExons = targets.filter( lambda x: f"{g}" in x.name and "exon" in x.name ).saveas()
-		if targets.file_type == "gff":
-			geneExons = targets.filter(lambda x: x.name==g and x[2]=="exon").each( featurefuncs.gff2bed ).saveas()
-
-		exonList = []
-		for e in geneExons:
-			exonList.append( e )
-
-		if len(exonList)==0:
-			print( f"Warning: no exons found for reference gene {g}, skipping...", file=sys.stderr)
-			continue
-
-		#check strand and get sequence
-		splicedSeq = ""
-		if exonList[0].strand == "+": #assuming all exons are in the same direction
-			for exon in exonList:
-				splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), genomeFile )
-		else:
-			for exon in reversed(exonList):
-				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), genomeFile )
-				splicedSeq += str( Seq(rc).reverse_complement() )
-
-		seqDB[ g ] = splicedSeq.upper()
-
-
 	#parse DB of coding alleles, if present
 	if codingDB is not None:
 
@@ -102,53 +75,66 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 				elif gene != "C" and imgtID.group(2) != gene:
 					continue
 
-				if imgtID.group() in seqDB:
-					#it's in the genome reference, move on
-					continue
-				else:
-					#IGH and TR* C genes have multiple exons that might need to be put together manually
-					if gene == "C" and locus not in ['IGK','IGL']:
-						exonID = [ e for e in cExonOrder if re.search(f"\\b{e}\\b",seq.description) ]
+				#IGH and TR* C genes have multiple exons that might need to be put together manually
+				if gene == "C" and locus not in ['IGK','IGL']:
+					exonID = [ e for e in cExonOrder if re.search(f"\\b{e}\\b",seq.description) ]
 
-						#stupid kludge to account for three types of exons with an internal '\b'
-						if "H-CH2" in exonID:
-							exonID.remove("H")
-							exonID.remove("CH2")
-						elif "CH3-CHS" in exonID:
-							exonID.remove("CH3")
-							exonID.remove("CHS")
-						elif "CH4-CHS" in exonID:
-							exonID.remove("CH4")
-							exonID.remove("CHS")
+					#stupid kludge to account for three types of exons with an internal '\b'
+					if "H-CH2" in exonID:
+						exonID.remove("H")
+						exonID.remove("CH2")
+					elif "CH3-CHS" in exonID:
+						exonID.remove("CH3")
+						exonID.remove("CHS")
+					elif "CH4-CHS" in exonID:
+						exonID.remove("CH4")
+						exonID.remove("CHS")
 
-						if len(exonID) == 1:
-							cSeqs[ imgtID.group() ][ exonID[0] ] = str( seq.seq )
-						else:
-							#multiple or no matches - just assume it is full-length and move on
-							seqDB[ imgtID.group() ] = str( seq.seq ).upper()
+					if len(exonID) == 1:
+						cSeqs[ imgtID.group() ][ exonID[0] ] = str( seq.seq )
 					else:
+						#multiple or no matches - just assume it is full-length and move on
 						seqDB[ imgtID.group() ] = str( seq.seq ).upper()
+				else:
+					seqDB[ imgtID.group() ] = str( seq.seq ).upper()
 
 		#put any C exons back together
 		for allele in cSeqs:
 			seqDB[ allele ] = "".join([ cSeqs[allele].get(e,"") for e in cExonOrder ]).upper()
 
+	else:
+		#no coding alleles provided, extract sequences from reference genome instead
+		for g in gene_ids:
+
+			#some kludge to save them since the BedTool generator object produced by `filter` is weird
+			geneExons = targets.filter( lambda x: f"{g}" in x.name and "exon" in x.name ).saveas()
+			if targets.file_type == "gff":
+				geneExons = targets.filter(lambda x: x.name==g and x[2]=="exon").each( featurefuncs.gff2bed ).saveas()
+
+			exonList = []
+			for e in geneExons:
+				exonList.append( e )
+
+			if len(exonList)==0:
+				print( f"Warning: no exons found for reference gene {g}, skipping...", file=sys.stderr)
+				continue
+
+			#check strand and get sequence
+			splicedSeq = ""
+			if exonList[0].strand == "+": #assuming all exons are in the same direction
+				for exon in exonList:
+					splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), genomeFile )
+			else:
+				for exon in reversed(exonList):
+					rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), genomeFile )
+					splicedSeq += str( Seq(rc).reverse_complement() )
+
+			seqDB[ g ] = splicedSeq.upper()
 
 
 	#now iterate over the hits
 	for stringhit, splicedSeq in toName.items():
 		
-		# #Get spliced sequence
-		# #  TODO - change dictionary structure in checkSplice/checkFunctionality so I don't have to do this again
-		# splicedSeq = ""
-		# if exonList[0].strand == "+": #assuming all exons are in the same direction
-		# 	for exon in exonList:
-		# 		splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
-		# else:
-		# 	for exon in reversed(exonList):
-		# 		rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
-		# 		splicedSeq += str( Seq(rc).reverse_complement() )
-
 		#check for exact match in database
 		exactMatches = { k:v for k,v in seqDB.items() if v.upper() in splicedSeq or splicedSeq in v.upper() }
 
