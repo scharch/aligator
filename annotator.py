@@ -25,8 +25,8 @@ Options:
                                     [default: genes.gff]
    --outfasta genes.fa        - Where to save the extracted sequences of the annotated genes.
                                     [default: genes.fa]
-   --nonfunctional orf-p.fa   - Optional fasta file for saving sequences of genes annotated
-                                    as ORF or pseudogenes.
+   --psfasta pseudo.fa        - Optional fasta file for saving sequences of genes annotated
+                                    as pseudogenes.
    --blast blastn             - Path to the `blastn` executable. [Default: blastn]
    --debug log                - Mangage program messages. Options are `quiet` (no messages),
                                     `log` (save everything to aligator.log file), or `verbose`
@@ -47,6 +47,7 @@ Sorted GFF and fasta output by CASchramm 2024-11-05.
 Fixed GFF3 format compatibility by CASchramm 2024-11-06.
 Added optional ORF/P fasta output by CASchramm 2024-11-06.
 Added checking of gene/exon/RSS boundaries by CASchramm 2024-11-06.
+Changed --nonfunctional to --psfasta.
 
 Copyright (c) 2019-2024 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -253,14 +254,14 @@ def main():
 					gffRows.append( [ exon[0], "ALIGaToR", eType, int(exon[1])+1, int(exon[2]), ".", exon[5], ".", f"Parent={finalNames[stringhit]};exontype={exon_name[1]};locus={arguments['LOCUS']};functionality={statusDict[stringhit]['type']}" ] )
 
 			# 6b. Fasta output - functional coding sequences only
-			if statusDict[stringhit]['type']=="F":
-				if stringhit in novelG: funcNg += 1
-				if stringhit in novelA: funcNa += 1
+			if statusDict[stringhit]['type'] in ["F", "ORF"]:
+				if statusDict[stringhit]['type']=="F" and stringhit in novelG: funcNg += 1
+				if statusDict[stringhit]['type']=="F" and stringhit in novelA: funcNa += 1
 
 				#create and save a SeqRecord
 				sequences.append( { 'pos':geneBoundaries[stringhit]['start'], 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
 
-			elif arguments['--nonfunctional'] is not None and stringhit in splicedSequences:
+			elif arguments['--psfasta'] is not None and stringhit in splicedSequences:
 				nfseqs.append( { 'pos':geneBoundaries[stringhit]['start'], 'seq':SeqRecord( Seq(splicedSequences[stringhit]), id=finalNames[stringhit], description="") } )
 
 		# 6c. Print some statistics
@@ -280,8 +281,8 @@ def main():
 	with open(arguments['--outfasta'], 'w') as fasta_handle:
 		sequences.sort( key=itemgetter('pos') )
 		SeqIO.write( [ s['seq'] for s in sequences ], fasta_handle, 'fasta' )
-	if arguments['--nonfunctional'] is not None:
-		with open(arguments['--nonfunctional'], 'w') as fasta_handle:
+	if arguments['--psfasta'] is not None:
+		with open(arguments['--psfasta'], 'w') as fasta_handle:
 			nfseqs.sort( key=itemgetter('pos') )
 			SeqIO.write( [ s['seq'] for s in nfseqs ], fasta_handle, 'fasta' )
 		
