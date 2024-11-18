@@ -134,7 +134,7 @@ def main():
 		#for constant regions the main concern is assembly gaps that might cause each domain to come up as separate blast hit.
 		#    Since genes are much further apart than exons, we can use bedtools merge to account for this
 		if gene == "C":
-#			try:
+			try:
 				#check the best hit to make sure it covers the whole query
 				#if 1-3 bases are missing from either end, claw them back manually
 				#more than that it's probably a pseudogene?
@@ -149,14 +149,13 @@ def main():
 						repaired.append( row )
 				with open(f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed", 'w') as output:
 					writer = csv.writer(output, delimiter="\t")
-					for m in sorted( repaired, key=lambda r: (r[0],r[1]) ):
-						writer.writerow(m[0:6])
-				#blastHits =BedTool(f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed")
+					for row in repaired:
+						writer.writerow(row)
 				blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
 
-#			except:
-#				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
-#				continue
+			except:
+				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+				continue
 		else:
 			# For V genes, on the other hand, the most important thing is to get a template of the right family
 			#    otherwise, the L-part1 exon might get lost and/or the splice sites might not align properly.
@@ -334,6 +333,6 @@ if __name__ == '__main__':
 	elif arguments['--debug'] == 'log':
 		sys.stderr = open('aligator.log', 'a')
 
-	evalues = { "V":"1e-20", "D":"1e-10", "J":"1e-10", "C":"1e-20" }
+	evalues = { "V":"1e-20", "D":"1e-10", "J":"1e-10", "C":"1e-50" }
 
 	main()
