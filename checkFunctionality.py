@@ -42,7 +42,7 @@ def checkInvariants( align, locus, gene ):
 
 
 	for pos in invars[ locus ][ gene ]:
-		if align[ 'test' ][ pos ] != invars[locus][gene][pos]:
+		if align[ 'test' ][ pos ].upper() != invars[locus][gene][pos]:
 			return False
 
 	return True
@@ -63,13 +63,13 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene, status):
 			for exon in exonList:
 				if "V-Region" in exon.name:
 					continue
-				splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
+				splicedSeq += BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs ).upper()
 		else:
 			for exon in reversed(exonList):
 				if "V-Region" in exon.name:
 					continue
 				rc = BedTool.seq( (exon[0],int(exon[1]),int(exon[2])), contigs )
-				splicedSeq += str( Seq(rc).reverse_complement() )
+				splicedSeq += str( Seq(rc).reverse_complement() ).upper()
 
 		seqdict[ stringhit ] = splicedSeq
 		vregion = [ e for e in exonList if "V-Region" in e.name ]
