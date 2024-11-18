@@ -134,11 +134,29 @@ def main():
 		#for constant regions the main concern is assembly gaps that might cause each domain to come up as separate blast hit.
 		#    Since genes are much further apart than exons, we can use bedtools merge to account for this
 		if gene == "C":
-			try:
-				blastHits = BedTool( f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
-			except:
-				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
-				continue
+#			try:
+				#check the best hit to make sure it covers the whole query
+				#if 1-3 bases are missing from either end, claw them back manually
+				#more than that it's probably a pseudogene?
+				with open(f"annoTemp/rawHits_{arguments['LOCUS']}{gene}.bed",'r') as input:
+					repaired = list()
+					reader = csv.reader(input,delimiter="\t")
+					for row in reader:
+						if int(row[6]) > 1 and int(row[6]) <= 4:
+							row[1] = str( int(row[1]) - int(row[6]) + 1 )
+						if int(row[7]) < targetLengths[ row[3] ] and targetLengths[ row[3] ]-int(row[7]) <= 4:
+							row[2] = str( int(row[2]) + targetLengths[ row[3] ] - int(row[7]) )
+						repaired.append( row )
+				with open(f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed", 'w') as output:
+					writer = csv.writer(output, delimiter="\t")
+					for m in sorted( repaired, key=lambda r: (r[0],r[1]) ):
+						writer.writerow(m[0:6])
+				#blastHits =BedTool(f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed")
+				blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
+
+#			except:
+#				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+#				continue
 		else:
 			# For V genes, on the other hand, the most important thing is to get a template of the right family
 			#    otherwise, the L-part1 exon might get lost and/or the splice sites might not align properly.
@@ -161,9 +179,9 @@ def main():
 					#check the best hit to make sure it covers the whole query
 					#if 1-3 bases are missing from either end, claw them back manually
 					#more than that it's probably a pseudogene?
-					if int(sortedHits[0][6]) > 1 and int(sortedHits[0][6]) < 4:
+					if int(sortedHits[0][6]) > 1 and int(sortedHits[0][6]) <= 4:
 						sortedHits[0][1] = str( int(sortedHits[0][1]) - int(sortedHits[0][6]) + 1 )
-					if int(sortedHits[0][7]) < targetLengths[ sortedHits[0][3] ] and targetLengths[ sortedHits[0][3] ]-int(sortedHits[0][7]) < 4:
+					if int(sortedHits[0][7]) < targetLengths[ sortedHits[0][3] ] and targetLengths[ sortedHits[0][3] ]-int(sortedHits[0][7]) <= 4:
 						sortedHits[0][2] = str( int(sortedHits[0][2]) + targetLengths[ sortedHits[0][3] ] - int(sortedHits[0][7]) )
 
 					maxBlastHits.append(sortedHits[0]) #append first hit from each dictionary list to maxBlastHits list 
@@ -316,6 +334,6 @@ if __name__ == '__main__':
 	elif arguments['--debug'] == 'log':
 		sys.stderr = open('aligator.log', 'a')
 
-	evalues = { "V":"1e-20", "D":"1e-10", "J":"1e-10", "C":"1e-100" }
+	evalues = { "V":"1e-20", "D":"1e-10", "J":"1e-10", "C":"1e-20" }
 
 	main()
