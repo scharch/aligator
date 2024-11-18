@@ -220,7 +220,7 @@ def main():
 	
 		# 3. Check splice sites and recover exons
 		mappedExons, geneBoundaries, statusDict = checkSplice( blastHits, arguments['TARGETBED'], arguments['TARGETGENOME'], 
-																						arguments['CONTIGS'], gene, arguments['--blast'], 
+																						arguments['CONTIGS'], gene, arguments['LOCUS'], arguments['--blast'], 
 																						arguments['--alleledb'], selectedRSS, statusDict )
 
 		# 4. Check functionality

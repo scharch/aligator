@@ -87,7 +87,7 @@ def exons2bed( gff ):
 	return bed
 
 
-def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq, rss, status ):
+def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, codingSeq, rss, status ):
 
 	from aligator import blast2bed, quickAlign, GAPPED_CODON_TABLE
 
@@ -170,9 +170,16 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq,
 
 				if posDict[ finalExons[i].start ]['gap']:
 					if i==0:
-						status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 5' end"] }
-						incomplete = True
-						break
+						#don't worry if it's just missing RSS
+						rsslen = 0
+						if gene=="J":
+							rsslen = 28
+							if locus in ["IGH", "IGK"]:
+								rsslen = 39
+						if posDict[ finalExons[i].start + rsslen ]['gap']:
+							status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 5' end"] }
+							incomplete = True
+							break
 					else:
 						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice acceptor in alignment gap in exon {i+1}"] }
 						incomplete = True
@@ -190,9 +197,16 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, blast_exec, codingSeq,
 
 				if posDict[ finalExons[i].stop ]['gap']:
 					if i==len(finalExons)-1:
-						status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 3' end"] }
-						incomplete = True
-						break
+						#don't worry if it's just missing RSS
+						rsslen = 0
+						if gene=="V":
+							rsslen = 39
+							if locus == "IGK":
+								rsslen = 28
+						if posDict[ finalExons[i].start - rsslen ]['gap']:
+							status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 3' end"] }
+							incomplete = True
+							break
 					else:
 						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice donor in alignment gap in exon {i+1}"] }
 						incomplete = True
