@@ -77,7 +77,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 
 				#IGH and TR* C genes have multiple exons that might need to be put together manually
 				if gene == "C" and locus not in ['IGK','IGL']:
-					exonID = [ e for e in cExonOrder if re.search(f"\\b{e}\\b",seq.description) ]
+					exonID = [ e for e in cExonOrder if re.search(f"(?:\\b|(?<=_)){e}(?=\\b|_)",seq.description) ]
 
 					#stupid kludge to account for three types of exons with an internal '\b'
 					if "H-CH2" in exonID:
@@ -91,7 +91,8 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 						exonID.remove("CHS")
 
 					if len(exonID) == 1:
-						cSeqs[ imgtID.group() ][ exonID[0] ] = str( seq.seq )
+						alleleID = re.sub( f"[-_]{exonID[0]}", "", imgtID.group() )
+						cSeqs[ alleleID ][ exonID[0] ] = str( seq.seq )
 					else:
 						#multiple or no matches - just assume it is full-length and move on
 						seqDB[ imgtID.group() ] = str( seq.seq ).upper()
@@ -130,7 +131,6 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 					splicedSeq += str( Seq(rc).reverse_complement() )
 
 			seqDB[ g ] = splicedSeq.upper()
-
 
 	#now iterate over the hits
 	for stringhit, splicedSeq in toName.items():
