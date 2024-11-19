@@ -168,19 +168,20 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 						status[ stringhit ][ 'type' ] = "ORF"
 						status[ stringhit ][ 'notes' ].append( f"noncanonical splice acceptor {acceptor[-2:]}" )
 
-				if posDict[ finalExons[i].start ]['gap']:
-					if i==0:
+				if i==0:
+					if posDict[ finalExons[i].start ]['gap']:
 						#don't worry if it's just missing RSS
-						rsslen = 0
+						rsslen = 1
 						if gene=="J":
 							rsslen = 28
 							if locus in ["IGH", "IGK"]:
 								rsslen = 39
-						if posDict[ finalExons[i].start + rsslen ]['gap']:
+						if posDict[ finalExons[i].start + rsslen - 1]['gap']:
 							status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 5' end"] }
 							incomplete = True
 							break
-					else:
+				else:
+					if posDict[ finalExons[i].start - 1 ]['gap']:
 						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice acceptor in alignment gap in exon {i+1}"] }
 						incomplete = True
 						break
@@ -195,19 +196,20 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 								status[ stringhit ][ 'type' ] = "ORF"
 								status[ stringhit ][ 'notes' ].append( f"noncanonical splice donor {donor[0:2]}" )
 
-				if posDict[ finalExons[i].stop ]['gap']:
-					if i==len(finalExons)-1:
+				if i==len(finalExons)-1:
+					if posDict[ finalExons[i].stop ]['gap']:
 						#don't worry if it's just missing RSS
-						rsslen = 0
+						rsslen = 1
 						if gene=="V":
 							rsslen = 39
 							if locus == "IGK":
 								rsslen = 28
-						if posDict[ finalExons[i].start - rsslen ]['gap']:
+						if posDict[ finalExons[i].start - rsslen + 1 ]['gap']:
 							status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 3' end"] }
 							incomplete = True
 							break
-					else:
+				else:
+					if posDict[ finalExons[i].stop + 1 ]['gap']:
 						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice donor in alignment gap in exon {i+1}"] }
 						incomplete = True
 						break

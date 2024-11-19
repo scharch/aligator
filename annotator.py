@@ -76,6 +76,24 @@ sys.path.append(f"{SOURCE_DIR}/..")
 from aligator import *
 
 
+def recoverBestC( hit ):
+	if "," in hit.name:
+		#most of the time it's not actually ambiguous and we can skip this
+		toCheck = BedTool(re.sub(" ","_",str(hit)), from_string=True).sequence(fi=arguments['CONTIGS'],fo="annoTemp/bestC_query.fa", name=True, s=True) 
+		blastOnly( arguments['--blast'], f"annoTemp/targets_{arguments['LOCUS']}C.fa", "annoTemp/bestC_query.fa",
+							"annoTemp/bestC_result.txt", outformat="6 sseqid pident", maxTarget='1', maxHSP='1' )
+
+		#read in blast hit
+		with open("annoTemp/bestC_result.txt", 'r') as handle:
+			try:
+				row = next( csv.reader( handle, delimiter="\t") )
+				hit.name = row[0]
+			except StopIteration:
+				#this shouldn't happen, probably means something is really wrong
+				print( f"Warning! Couldn't pick best C gene match for '{hit}''..", file=sys.stderr )
+		
+	return hit
+
 
 def main():
 
@@ -151,11 +169,12 @@ def main():
 					writer = csv.writer(output, delimiter="\t")
 					for row in repaired:
 						writer.writerow(row)
-				blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
+				blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).each(recoverBestC).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
 
 			except:
-				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
+				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}C. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
 				continue
+
 		else:
 			# For V genes, on the other hand, the most important thing is to get a template of the right family
 			#    otherwise, the L-part1 exon might get lost and/or the splice sites might not align properly.
