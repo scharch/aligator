@@ -151,7 +151,7 @@ def main():
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 						start, end = map(int, splitStartEnd.split(".."))
-						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), f"{Cgene} {row[1]}-exon", "0", strand])
+						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), f"{geneName} {row[1]}-exon", "0", strand])
 
 			else:
 				#If V,D,J gene names have not been recorded, flag gene type, record start and end coordinates, set strand to default "+"
