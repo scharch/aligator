@@ -88,7 +88,7 @@ def main():
 							start, end = map(int, splitStartEnd.split(".."))
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
 				#fetch V,D,and J CDS
-				elif row[1] in ["L-PART1","V-EXON","D-REGION","J-REGION"]:
+				elif row[1] in ["L-PART1","V-EXON","V-REGION","D-REGION","J-REGION"]:
 					splitStartEnd = row[5]
 					if geneName in pseudoList:
 						inGeneVDJ = False
@@ -101,6 +101,8 @@ def main():
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " L-part1-exon", "0", strand])
 						if row[1] == "V-EXON":
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " V-exon", "0", strand])
+						if row[1] == "V-REGION":
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " V-region", "0", strand])
 						if row[1] == "D-REGION":
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " D-exon", "0", strand])
 						if row[1] == "J-REGION":
