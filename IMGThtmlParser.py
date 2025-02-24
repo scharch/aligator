@@ -6,16 +6,23 @@ aligator extract
 This script parses reference annotations from the IMGT website to produce a
     bedfile that can be used with `aligator annoate`
 
-Usage: IMGThtmlParser.py URL IMGTREFNAME
+Usage: IMGThtmlParser.py IMGTREFNAME OUTPUTBED [--pseudo] [--fasta=FASTA]
 
-Options:
-   URL            - Assembled genomic contigs to be annotated in fasta format.
-   IMGTREFNAME    - Predicted RSS12 sequences in bed format.
+Arguments:
+	IMGTREFNAME    			- IMGT Reference name
+	OUTPUTBED					- output bed file
+
+Options:	
+	--pseudo						- optional flag to include pseudogenes
+	--fasta=FASTA				- optional file to include fasta sequence
 
 Created by S Olubo 2023.
 Add docopt documentation by CA Schramm 2024-05-28.
+Included optional pseudogene flag S Olubo 2025-02-24
+Included optional fasta sequence S Olubo 2025-02-24
+Changed command line arguments to include output bed file S Olubo 2025-02-24
 
-Copyright (c) 2023-2024 Vaccine Research Center, National Institutes of Health, USA.
+Copyright (c) 2023-2025 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
 """
@@ -29,7 +36,8 @@ from bs4 import BeautifulSoup
 
 def main():
 	# Fetch and parse page content
-	page = requests.get(arguments['URL'])
+	url = f"https://imgt.org/ligmdb/view.action?id={arguments['IMGTREFNAME']}"
+	page = requests.get(url)
 	soup = BeautifulSoup(page.content, "html.parser")
 
 	# Initialize variables and lists for tracking gene features
@@ -45,6 +53,7 @@ def main():
 	geneNameList = []
 	CexonList = []
 	pseudoList = []
+	ORFList= []
 	RSList = []
 	VSlist = []
 
@@ -55,38 +64,54 @@ def main():
 		for tr in x.select('tr'):
 			row = [re.sub("\n",":",i.text.strip()) for i in tr]
 			
-			#check for functional and pseudo V-genes
+			#check for functional, pseudo, and ORF V-genes
 			if inVgene or inJgene or inCgene and geneType in ["V-GENE", "J-GENE","C-GENE"]:
 				if row[3] == "IMGT_allele":
 					geneName = row[5]
+				#if pseudogene flag is true then add line for pseudogene, if there is no pseudogene flag, skip pseudogenes
 				elif row[3] == "pseudo":
+					if not arguments['--pseudo']:
+						inVgene = False
+						inJgene = False
+						inCgene = False
+					else:
+						if re.match("complement",splitStartEnd):
+							strand = "-"
+							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						start, end = map(int, splitStartEnd.split(".."))
+						geneName.replace('(I)','').replace('(II)','').replace('(III)','')
+						if geneName not in pseudoList:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " pseudogene", "0", strand])
 					pseudoList.append(geneName)
-					inVgene = False
-					inJgene = False
-					inCgene = False
+				elif row[3] == "ORF":
+					ORFList.append(geneName)
 			#check for functional and pseudo V-genes, D-genes, and J-genes, keep track of gene names
 			#If coordinates are "complement", the strand should be "-"
 			#Subtract one from start and end coordinates
 			#output IMGT reference name, start and end coordinates, and gene name
 			if inGeneVDJ:
 				if row[3] == "pseudo":
+					if not arguments['--pseudo']:
+						inGeneVDJ = False
 					if geneName not in pseudoList:
 						pseudoList.append(geneName)
-					inGeneVDJ = False
 				elif row[3] == "IMGT_allele":
 					geneName = row[5]
 					if geneName in geneNameList:
 						inGeneVDJ = False
 					else:
 						geneNameList.append(geneName)
-						if geneName in pseudoList:
+						if geneName in pseudoList and not arguments['--pseudo']:
 							inGeneVDJ = False
 						else:
 							if re.match("complement",splitStartEnd):
 								strand = "-"
 								splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 							start, end = map(int, splitStartEnd.split(".."))
-							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+							if geneName in ORFList:
+								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
+							if geneName not in pseudoList:
+								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
 				#fetch V,D,and J CDS
 				elif row[1] in ["L-PART1","V-EXON","V-REGION","D-REGION","J-REGION"]:
 					splitStartEnd = row[5]
@@ -144,7 +169,7 @@ def main():
 						start, end = map(int, splitStartEnd.split(".."))
 						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), Cgene + " gene", "0", strand])
 					#fetch C-gene CDS
-				if re.match("CL",row[1]) or re.match("CH|H",row[1]) or re.match("M[12]|M(?!ISC)",row[1]) or re.match("EX([1234])",row[1]):
+				if re.match("CL",row[1]) or re.match("CH|H",row[1]) or re.match("M[12]|M(?!ISC)",row[1]) or re.match(r"^EX([1234])$", row[1]):
 					splitStartEnd = row[5]
 					if re.match("CH([1234])-CH([2S])|H-CH([1-4])",row[1]):
 						CexonList.append(geneName)
@@ -170,9 +195,13 @@ def main():
 				if re.match("V-GENE",row[1]):
 					inVgene = True
 					geneType = "V-GENE"
+					strand="+"
+					splitStartEnd = row[5]
 				if re.match("J-GENE",row[1]):
 					inJgene = True
 					geneType = "J-GENE"
+					strand="+"
+					splitStartEnd = row[5]
 				if re.match("C-GENE",row[1]):
 					inCgene = True
 					geneType = "C-GENE"
@@ -185,11 +214,19 @@ def main():
 	rows.sort(key=lambda x: (x[0], int(x[1])))
 
 	# Write the sorted rows to the output file
-	with open(f"{arguments['IMGTREFNAME']}.bed", 'w') as output:
+	with open(arguments['OUTPUTBED'], 'w') as output:
 		writer = csv.writer(output, delimiter="\t")
 		for row in rows:
 			writer.writerow(row)
 
+	if arguments['--fasta']:
+		fastaUrl = f"https://imgt.org/ligmdb/view.action?format=FASTA&id={arguments['IMGTREFNAME']}"
+		fastaPage = requests.get(fastaUrl)
+		fastaSoup = BeautifulSoup(fastaPage.content, "html.parser")
+		with open(arguments['--fasta'], "w") as fastaFile:
+			for y in fastaSoup.select('pre'):
+				for row in y:
+					fastaFile.write(row)
 
 
 if __name__ == '__main__':
@@ -197,3 +234,4 @@ if __name__ == '__main__':
 	arguments = docopt(__doc__)
 
 	main()
+
