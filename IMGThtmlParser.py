@@ -10,11 +10,11 @@ Usage: IMGThtmlParser.py IMGTREFNAME OUTPUTBED [--pseudo] [--fasta=FASTA]
 
 Arguments:
 	IMGTREFNAME    			- IMGT Reference name
-	OUTPUTBED					- output bed file
+	OUTPUTBED			- output bed file
 
 Options:	
-	--pseudo						- optional flag to include pseudogenes
-	--fasta=FASTA				- optional file to include fasta sequence
+	--pseudo			- optional flag to include pseudogenes
+	--fasta=FASTA			- optional file to include fasta sequence
 
 Created by S Olubo 2023.
 Add docopt documentation by CA Schramm 2024-05-28.
