@@ -9,18 +9,20 @@ This script parses reference annotations from the IMGT website to produce a
 Usage: IMGThtmlParser.py IMGTREFNAME OUTPUTBED [--pseudo] [--fasta=FASTA]
 
 Arguments:
-	IMGTREFNAME    			- IMGT Reference name
-	OUTPUTBED			- output bed file
+	IMGTREFNAME     - IMGT Reference name
+	OUTPUTBED       - output bed file
 
 Options:	
-	--pseudo			- optional flag to include pseudogenes
-	--fasta=FASTA			- optional file to include fasta sequence
+	--pseudo        - optional flag to include pseudogenes
+	--fasta=FASTA   - optional file to include fasta sequence
 
 Created by S Olubo 2023.
 Add docopt documentation by CA Schramm 2024-05-28.
 Included optional pseudogene flag S Olubo 2025-02-24
 Included optional fasta sequence S Olubo 2025-02-24
 Changed command line arguments to include output bed file S Olubo 2025-02-24
+Overrode IMGT fasta def line to prevent mismatches with bed file
+     and a few other minor fixes by CA Schramm 2025-02-25.
 
 Copyright (c) 2023-2025 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -157,17 +159,16 @@ def main():
 				if geneName in pseudoList or row[1] == "3'UTR":
 					inGeneCunit = False
 				elif row[3] == "IMGT_allele":
-					geneName = row[5]
+					geneName = row[5].replace("IGH","IGHC")
 					if geneName in geneNameList:
 						inGeneCunit = False
 					else:
 						geneNameList.append(geneName)
-						Cgene = geneName.replace("IGH","IGHC")
 						if re.match("complement",splitStartEnd):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 						start, end = map(int, splitStartEnd.split(".."))
-						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), Cgene + " gene", "0", strand])
+						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
 					#fetch C-gene CDS
 				if re.match("CL",row[1]) or re.match("CH|H",row[1]) or re.match("M[12]|M(?!ISC)",row[1]) or re.match(r"^EX([1234])$", row[1]):
 					splitStartEnd = row[5]
@@ -226,7 +227,8 @@ def main():
 		with open(arguments['--fasta'], "w") as fastaFile:
 			for y in fastaSoup.select('pre'):
 				for row in y:
-					fastaFile.write(row)
+					fixName = re.sub( ">.+?\n", f">{arguments['IMGTREFNAME']}\n", row.text.strip() )
+					fastaFile.write(fixName)
 
 
 if __name__ == '__main__':
