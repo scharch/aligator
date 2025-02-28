@@ -66,6 +66,10 @@ def main():
 		for tr in x.select('tr'):
 			row = [re.sub("\n",":",i.text.strip()) for i in tr]
 			
+			#skip the second chunk of the extraction
+			if row[1]=="Database": 
+				break
+
 			#check for functional, pseudo, and ORF V-genes
 			if inVgene or inJgene or inCgene and geneType in ["V-GENE", "J-GENE","C-GENE"]:
 				if row[3] == "IMGT_allele":
@@ -99,20 +103,18 @@ def main():
 						pseudoList.append(geneName)
 				elif row[3] == "IMGT_allele":
 					geneName = row[5]
-					if geneName in geneNameList:
-						inGeneVDJ = False
-					else:
+					if geneName not in geneNameList:
 						geneNameList.append(geneName)
 						if geneName in pseudoList and not arguments['--pseudo']:
 							inGeneVDJ = False
-						else:
+						elif geneType!="V-GENE": #only do this for L-V-GENE-UNIT, not V-GENE
 							if re.match("complement",splitStartEnd):
 								strand = "-"
 								splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
 							start, end = map(int, splitStartEnd.split(".."))
 							if geneName in ORFList:
 								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
-							if geneName not in pseudoList:
+							elif geneName not in pseudoList:
 								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
 				#fetch V,D,and J CDS
 				elif row[1] in ["L-PART1","V-EXON","V-REGION","D-REGION","J-REGION"]:
@@ -134,14 +136,17 @@ def main():
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " D-exon", "0", strand])
 						if row[1] == "J-REGION":
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " J-exon", "0", strand])
+							inGeneVDJ = False
 			#check for RS regions of V-genes, D-genes, and J-genes, keep track of gene names
 			#If coordinates are "complement", strand should be "-"
 			#Subtract one from start and end coordinates
 			#output IMGT reference name, start and end coordinates, and gene name			
-			elif re.match("(V|5'D|3'D|J)-RS", row[1]) and row[5] not in RSList and geneName not in VSlist:
+			if re.match("(V|5'D|3'D|J)-RS", row[1]) and row[5] not in RSList and geneName not in VSlist:
 				#fetch V-gene and J-gene RSS
 				if row[1] == "V-RS" or row[1] == "J-RS":
 					VSlist.append(geneName)
+				if row[1] == "V-RS" or row[1] == "3'D-RS":
+					inGeneVDJ = False
 				RSList.append(row[5])
 				splitStartEnd = row[5]
 				if geneName in pseudoList:
@@ -155,7 +160,7 @@ def main():
 			
 			#Check for C genes, and their CDS, keep track of gene names
 			#filter out pseudo C genes
-			elif inGeneCunit and geneType == "C":
+			if inGeneCunit and geneType == "C":
 				if geneName in pseudoList or row[1] == "3'UTR":
 					inGeneCunit = False
 				elif row[3] == "IMGT_allele":
@@ -181,42 +186,61 @@ def main():
 						start, end = map(int, splitStartEnd.split(".."))
 						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), f"{geneName} {row[1]}-exon", "0", strand])
 
-			else:
-				#If V,D,J gene names have not been recorded, flag gene type, record start and end coordinates, set strand to default "+"
-				if re.match("(?:L-)?([VDJ])-GENE-UNIT", row[1]):
-					splitStartEnd = row[5]
-					strand="+"
-					inGeneVDJ = True
-					if row[1]=="L-V-GENE-UNIT":
-						geneType="V"
-					elif row[1]=="D-GENE-UNIT":
-						geneType="D"
-					elif row[1]=="J-GENE-UNIT":
-						geneType="J"
-				if re.match("V-GENE",row[1]):
-					inVgene = True
-					geneType = "V-GENE"
-					strand="+"
-					splitStartEnd = row[5]
-				if re.match("J-GENE",row[1]):
-					inJgene = True
-					geneType = "J-GENE"
-					strand="+"
-					splitStartEnd = row[5]
-				if re.match("C-GENE",row[1]):
-					inCgene = True
-					geneType = "C-GENE"
-				if row[1] == "C-GENE-UNIT":
-					inGeneCunit = True
-					splitStartEnd = row[5]
-					geneType = "C"
+			if re.match("(?:L-)?([VDJ])-GENE(-UNIT)?", row[1]):
+
+				if row[1]=="D-GENE" or row[1]=="J-GENE":
+					continue
+
+				splitStartEnd = row[5]
+				strand="+"
+
+				if row[1]=="L-V-GENE-UNIT":
+					geneType="V"
+					if inGeneVDJ: #already have the gene name from V-GENE
+						if re.match("complement",splitStartEnd):
+							strand = "-"
+							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						start, end = map(int, splitStartEnd.split(".."))
+						if geneName in ORFList:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
+						elif geneName not in pseudoList:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+
+				elif row[1]=="D-GENE-UNIT":
+					geneType="D"
+				elif row[1]=="J-GENE-UNIT":
+					geneType="J"
+
+				inGeneVDJ = True
+			if re.match("V-GENE",row[1]):
+				inVgene = True
+				geneType = "V-GENE"
+				strand="+"
+				splitStartEnd = row[5]
+			if re.match("J-GENE",row[1]):
+				inJgene = True
+				geneType = "J-GENE"
+				strand="+"
+				splitStartEnd = row[5]
+			if re.match("C-GENE",row[1]):
+				inCgene = True
+				geneType = "C-GENE"
+			if row[1] == "C-GENE-UNIT":
+				inGeneCunit = True
+				splitStartEnd = row[5]
+				geneType = "C"
+
+		#don't process additional `div`s after break
+		else:
+			continue
+		break
 
 	# Sort the rows
 	rows.sort(key=lambda x: (x[0], int(x[1])))
 
 	# Write the sorted rows to the output file
-	with open(arguments['OUTPUTBED'], 'w') as output:
-		writer = csv.writer(output, delimiter="\t")
+	with open(arguments['OUTPUTBED'], 'w', newline='') as output:
+		writer = csv.writer(output, delimiter="\t", lineterminator="\n")
 		for row in rows:
 			writer.writerow(row)
 
