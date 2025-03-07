@@ -11,8 +11,10 @@ def parseTRA(gffFile):
 		with open(gffFile, 'r') as input:
 			reader = csv.reader(input, delimiter="\t")
 			for row in reader:
+				if re.match("#",row[0]):
+					continue
 				#write row with TRD annotations to TRDalleles.gff
-				if re.match("TRD",row[2]):
+				if re.match("TRD",row[8]):
 					writer.writerow(row)
 	TRDalleles = BedTool("annoTemp/TRDalleles.gff").sort()
 	allAlleles = BedTool(gffFile).sort()
@@ -21,7 +23,7 @@ def parseTRA(gffFile):
 	BedTool(allAlleles).cluster(s=True).saveas(f"annoTemp/clusteredAlleles.gff")
 
 	columnNames =["contig","source","feature","start","end","score","strand","frame","alleleName","cluster"]
-	df = pd.read_csv("annoTemp/clusteredAlleles.gff",delimiter="\t",error_bad_lines=False,header=None)
+	df = pd.read_csv("annoTemp/clusteredAlleles.gff",delimiter="\t",on_bad_lines="skip",header=None,comment="#")
 	df.columns = columnNames
 
 	grouped = df.groupby('cluster')

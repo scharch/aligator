@@ -113,10 +113,12 @@ def main():
 		mode = "a"
 	gffhandle = open( arguments['--outgff'], mode )
 	gffwriter = csv.writer( gffhandle, delimiter="\t", lineterminator="\n" )
-	gffwriter.writerow(["##gff-version 3"])
-	with open( arguments['CONTIGS'], 'r' ) as seqIn:
-		for seq in SeqIO.parse( seqIn, 'fasta' ):
-			gffwriter.writerow([f"##sequence-region {seq.id} 1 {len(seq.seq)}"])
+
+	if arguments['LOCUS'] != "TRD":
+		gffwriter.writerow(["##gff-version 3"])
+		with open( arguments['CONTIGS'], 'r' ) as seqIn:
+			for seq in SeqIO.parse( seqIn, 'fasta' ):
+				gffwriter.writerow([f"##sequence-region {seq.id} 1 {len(seq.seq)}"])
 
 
 	## THE PIPELINE GETS RUN SEPARATELY FOR EACH GENE IN THE LOCUS
@@ -314,11 +316,11 @@ def main():
 	for row in gffRows:
 		gffwriter.writerow(row)
 	gffhandle.close()
-	with open(arguments['--outfasta'], 'w') as fasta_handle:
+	with open(arguments['--outfasta'], mode) as fasta_handle:
 		sequences.sort( key=itemgetter('pos') )
 		SeqIO.write( [ s['seq'] for s in sequences ], fasta_handle, 'fasta' )
 	if arguments['--psfasta'] is not None:
-		with open(arguments['--psfasta'], 'w') as fasta_handle:
+		with open(arguments['--psfasta'], mode) as fasta_handle:
 			nfseqs.sort( key=itemgetter('pos') )
 			SeqIO.write( [ s['seq'] for s in nfseqs ], fasta_handle, 'fasta' )
 		
@@ -333,7 +335,6 @@ def main():
 	# If this was TRA, we now need to go back and hit TRD, since it is within the TRA locus
 	if arguments['LOCUS'] == 'TRA':
 		arguments['LOCUS'] = "TRD"
-		arguments['--outfasta'] = f"TRGenes_TRD.fa"
 		main()
 
 
