@@ -84,6 +84,7 @@ def main():
 						if re.match("complement",splitStartEnd):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 						start, end = map(int, splitStartEnd.split(".."))
 						geneName.replace('(I)','').replace('(II)','').replace('(III)','')
 						if geneName not in pseudoList:
@@ -111,6 +112,7 @@ def main():
 							if re.match("complement",splitStartEnd):
 								strand = "-"
 								splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+							splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 							start, end = map(int, splitStartEnd.split(".."))
 							if geneName in ORFList:
 								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
@@ -125,6 +127,7 @@ def main():
 						if re.match("complement",splitStartEnd):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 						start, end = map(int, splitStartEnd.split(".."))
 						if row[1] == "L-PART1":
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " L-part1-exon", "0", strand])
@@ -155,6 +158,7 @@ def main():
 					if re.match("complement",splitStartEnd):
 						strand = "-"
 						splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+					splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 					start, end = map(int, splitStartEnd.split(".."))
 					rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " RS", "0", strand])
 			
@@ -172,6 +176,7 @@ def main():
 						if re.match("complement",splitStartEnd):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 						start, end = map(int, splitStartEnd.split(".."))
 						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
 					#fetch C-gene CDS
@@ -183,6 +188,7 @@ def main():
 						if re.match("complement",splitStartEnd):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 						start, end = map(int, splitStartEnd.split(".."))
 						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), f"{geneName} {row[1]}-exon", "0", strand])
 
@@ -200,6 +206,7 @@ def main():
 						if re.match("complement",splitStartEnd):
 							strand = "-"
 							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 						start, end = map(int, splitStartEnd.split(".."))
 						if geneName in ORFList:
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
