@@ -76,19 +76,6 @@ def main():
 					geneName = row[5]
 				#if pseudogene flag is true then add line for pseudogene, if there is no pseudogene flag, skip pseudogenes
 				elif row[3] == "pseudo":
-					if not arguments['--pseudo']:
-						inVgene = False
-						inJgene = False
-						inCgene = False
-					else:
-						if re.match("complement",splitStartEnd):
-							strand = "-"
-							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
-						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
-						start, end = map(int, splitStartEnd.split(".."))
-						geneName.replace('(I)','').replace('(II)','').replace('(III)','')
-						if geneName not in pseudoList:
-							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " pseudogene", "0", strand])
 					pseudoList.append(geneName)
 				elif row[3] == "ORF":
 					ORFList.append(geneName)
@@ -98,8 +85,6 @@ def main():
 			#output IMGT reference name, start and end coordinates, and gene name
 			if inGeneVDJ:
 				if row[3] == "pseudo":
-					if not arguments['--pseudo']:
-						inGeneVDJ = False
 					if geneName not in pseudoList:
 						pseudoList.append(geneName)
 				elif row[3] == "IMGT_allele":
@@ -118,6 +103,8 @@ def main():
 								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
 							elif geneName not in pseudoList:
 								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+							elif arguments['--pseudo']:
+								rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " pseudogene", "0", strand])
 				#fetch V,D,and J CDS
 				elif row[1] in ["L-PART1","V-EXON","V-REGION","D-REGION","J-REGION"]:
 					splitStartEnd = row[5]
@@ -212,6 +199,8 @@ def main():
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
 						elif geneName not in pseudoList:
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+						elif arguments['--pseudo']:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " pseudogene", "0", strand])
 
 				elif row[1]=="D-GENE-UNIT":
 					geneType="D"
