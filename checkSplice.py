@@ -162,6 +162,9 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 				if "V-Region" in finalExons[i].name:
 					continue
 
+				#note: muscle returns alignments in caps, even if inputs were lower case
+				#    so as long as we pull from `align`, don't have to worry about that
+
 				if i > 0: #C acceptor handled below
 					acceptor = re.sub("-","",align['test'][ posDict[finalExons[i].start]['align']-10 : posDict[finalExons[i].start]['align'] ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
 					if not acceptor.endswith("AG"):# or acceptor.endswith("AC"):
@@ -290,26 +293,28 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 
 
 		#J and C: extract post/pre nt to verify splicing
+		#    **here, though, we are pulling from the genome, so need to correct for possible
+		#      case mismatch (ask me how I know...)
 		if gene == "J":
 			if h.strand == "+":
 				s = BedTool.seq((mapped[0].chrom,mapped[0].stop,mapped[0].stop+2), contigs )
-				if not s == "GT":
+				if not s.upper() == "GT":
 					status[ stringhit ][ 'type' ] = "ORF"
 					status[ stringhit ][ 'notes' ].append( "noncanonical J splice donor" )
 			else:
 				s = BedTool.seq((mapped[0].chrom,mapped[0].start-2,mapped[0].start), contigs )
-				if not s == "AC":
+				if not s.upper() == "AC":
 					status[ stringhit ][ 'type' ] = "ORF"
 					status[ stringhit ][ 'notes' ].append( "noncanonical J splice donor" )
 		elif gene == "C":
 			if h.strand == "+":
 				s = BedTool.seq((mapped[0].chrom,mapped[0].start-2,mapped[0].start), contigs )
-				if not s == "AG":
+				if not s.upper() == "AG":
 					status[ stringhit ][ 'type' ] = "ORF"
 					status[ stringhit ][ 'notes' ].append( "noncanonical C splice acceptor" )
 			else:
 				s = BedTool.seq((mapped[len(mapped)-1].chrom,mapped[len(mapped)-1].stop,mapped[len(mapped)-1].stop+2), contigs )
-				if not s == "CT":
+				if not s.upper() == "CT":
 					status[ stringhit ][ 'type' ] = "ORF"
 					status[ stringhit ][ 'notes' ].append( "noncanonical C splice acceptor" )
 
