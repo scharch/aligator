@@ -171,7 +171,12 @@ def main():
 					writer = csv.writer(output, delimiter="\t")
 					for row in repaired:
 						writer.writerow(row)
-				blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).each(recoverBestC).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
+
+				#Run a merge, but not for single-exon C genes
+				if arguments['LOCUS'] in ['IGK','IGL']:
+					blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).each(recoverBestC).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
+				else:
+					blastHits = BedTool( f"annoTemp/repairedBlastHits_{arguments['LOCUS']}{gene}.bed" ).merge( s=True, d=5000, c="4,5,6", o="distinct,max,first" ).each(recoverBestC).saveas( f"annoTemp/uniqueHits_{arguments['LOCUS']}{gene}.bed" )
 
 			except:
 				print(f"Warning: bedtools merge failed for {arguments['LOCUS']}C. Maybe no blast hits were found on this contig?\nSkipping...\n\n", file=sys.stderr)
