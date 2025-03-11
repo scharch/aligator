@@ -118,7 +118,7 @@ def load_seqs_in_dict(f, ids):
 
 
 
-def quickAlign( refseq, testseq ):
+def quickAlign( refseq, testseq, gapopen=None ):
 
 	refseq = str( refseq.seq )
 	refseq	= re.sub( "-", "", refseq )
@@ -130,6 +130,7 @@ def quickAlign( refseq, testseq ):
 	data = handle.getvalue()
 
 	muscle_cline = MuscleCommandline(cmd="muscle", quiet=True)
+	if gapopen is not None: muscle_cline.gapopen  = gapopen
 
 	stdout, stderr = muscle_cline(stdin=data)
 

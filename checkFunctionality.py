@@ -109,7 +109,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene, status):
 		elif gene == "J":
 			with open( f"{directory}/{locus}{gene}.fa", 'r' ) as refHandle:
 				refSeq = SeqIO.read(refHandle, 'fasta')
-			align = quickAlign( refSeq, SeqRecord(splicedSeq) )
+			align = quickAlign( refSeq, SeqRecord(splicedSeq), gapopen=-1000.0 )
 			with warnings.catch_warnings():
 				warnings.simplefilter('ignore', BiopythonWarning)
 				align['ref']  = str( Seq(align['ref'] ).translate(table=GAPPED_CODON_TABLE) )
