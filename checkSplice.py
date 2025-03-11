@@ -67,10 +67,10 @@ def mapExons(e, posDict, source ):
 
 	if source.strand == "+":
 		e.start = posDict[ e.start ]['test'] + source.start
-		e.stop  = posDict[ e.stop ]['test'] + source.start
+		e.stop  = posDict[ e.stop - 1 ]['test'] + source.start + 1
 	else:
 		temp    = e.start
-		e.start = source.stop - posDict[ e.stop ]['test']
+		e.start = source.stop - posDict[ e.stop - 1 ]['test'] - 1
 		e.stop  = source.stop - posDict[ temp ]['test']
 
 	return e
@@ -200,7 +200,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 								status[ stringhit ][ 'notes' ].append( f"noncanonical splice donor {donor[0:2]}" )
 
 				if i==len(finalExons)-1:
-					if posDict[ finalExons[i].stop ]['gap']:
+					if posDict[ finalExons[i].stop -1 ]['gap']:
 						#don't worry if it's just missing RSS
 						rsslen = 1
 						if gene=="V":
@@ -212,7 +212,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 							incomplete = True
 							break
 				else:
-					if posDict[ finalExons[i].stop + 1 ]['gap']:
+					if posDict[ finalExons[i].stop ]['gap']:
 						status[ stringhit ] = { 'type':'drop', 'notes':[f"splice donor in alignment gap in exon {i+1}"] }
 						incomplete = True
 						break
