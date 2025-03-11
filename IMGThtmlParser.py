@@ -121,7 +121,7 @@ def main():
 						if row[1] == "V-EXON":
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " V-exon", "0", strand])
 						if row[1] == "V-REGION":
-							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " V-region", "0", strand])
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " V-Region", "0", strand])
 						if row[1] == "D-REGION":
 							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " D-exon", "0", strand])
 						if row[1] == "J-REGION":
