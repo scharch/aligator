@@ -173,13 +173,12 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 
 				if i==0:
 					if posDict[ finalExons[i].start ]['gap']:
-						#don't worry if it's just missing RSS
-						rsslen = 1
-						if gene=="J":
-							rsslen = 28
-							if locus in ["IGH", "IGK"]:
-								rsslen = 39
-						if posDict[ finalExons[i].start + rsslen - 1]['gap']:
+						#is it just a few bases we can claw back?
+						test = [ posDict[ base ]['gap'] for base in reversed(range(finalExons[i].start,finalExons[i].start+4)) ]
+						clawback = 4 - test.index(True)
+						#really should check that we don't go off the begining of the contig...
+						if clawback > 3:
+							#not fixable
 							status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 5' end"] }
 							incomplete = True
 							break
@@ -189,9 +188,9 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 						incomplete = True
 						break
 
-				if i < len(finalExons)-1: #J donor handled below
+				if i < len(finalExons)-1 and not "V-exon" in finalExons[i].name: #J donor handled below, V-exon has V-Region after but is not a splice donor
 					donor = re.sub("-","",align['test'][ posDict[finalExons[i].stop]['align'] : posDict[finalExons[i].stop]['align']+10 ]) #if there are gaps here, it's probably bad anyway, but trying for a safety margin
-					if not donor.startswith("GT") and finalExons[i].name == "V-exon":# or donor.startswith("GC"):
+					if not donor.startswith("GT"):# or donor.startswith("GC"):
 						with warnings.catch_warnings():
 							warnings.simplefilter('ignore', BiopythonWarning)
 							if not (gene=="C" and Seq(donor).translate().startswith("*")):
@@ -199,15 +198,14 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 								status[ stringhit ][ 'type' ] = "ORF"
 								status[ stringhit ][ 'notes' ].append( f"noncanonical splice donor {donor[0:2]}" )
 
-				if i==len(finalExons)-1:
+				if i==len(finalExons)-1 or "V-exon" in finalExons[i].name:
 					if posDict[ finalExons[i].stop -1 ]['gap']:
-						#don't worry if it's just missing RSS
-						rsslen = 1
-						if gene=="V":
-							rsslen = 39
-							if locus == "IGK":
-								rsslen = 28
-						if posDict[ finalExons[i].start - rsslen + 1 ]['gap']:
+						#is it just a few bases we can claw back?
+						test = [ posDict[ base ]['gap'] for base in range(finalExons[i].stop-4,finalExons[i].stop) ]
+						clawback = 4 - test.index(True)
+						#really should check that we don't go off the end of the contig...
+						if clawback > 3:
+							#not fixable
 							status[ stringhit ] = { 'type':'drop', 'notes':["incomplete 3' end"] }
 							incomplete = True
 							break
