@@ -68,9 +68,16 @@ def parseTRA(gffFile):
 
 
 	df2 = df2.drop('cluster',axis=1)
-	contigName = df.loc[1,'contig']
-	
-	#sort and return the final annotations
-	df2.to_csv(f"annoTemp/traTempAnnotations.gff", sep='\t', index=False, header=False)
-	traFinalAnnotations = BedTool("annoTemp/traTempAnnotations.gff").sort()
-	return traFinalAnnotations
+
+        #sort and return the final annotations
+        df2.sort_values( ['start', 'end'], ascending=[True, False], inplace=True )
+
+        #copy over header
+        header = []
+        with open(gffFile, 'r') as readHeader:
+                header.append( next(readHeader) )
+                header.append( next(readHeader) )
+        with open(gffFile, 'w') as printFile:
+                for comment in header:
+                        printFile.write(comment)
+                df2.to_csv(printFile, sep='\t', index=False, header=False)

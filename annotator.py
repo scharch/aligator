@@ -331,8 +331,7 @@ def main():
 		
 	# 7. if we were annotating TRD, add it back to previous TRA results
 	if arguments['LOCUS'] == 'TRD':
-		newAnnotations = parseTRA(arguments['--outgff'])
-		newAnnotations.saveas(arguments['--outgff'])
+		parseTRA(arguments['--outgff'])
 
 	# 8. clean up
 	shutil.rmtree("annoTemp")
