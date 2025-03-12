@@ -142,7 +142,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene, status):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
 						splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
-					if "*" in splicedAA:
+					if "*" in splicedAA[:-1]: #assume last-codon stop is a gene annotation thing
 						status[ stringhit ] = { 'type':'P', 'notes':["internal stop codon"] }
 						continue
 
@@ -161,7 +161,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene, status):
 					with warnings.catch_warnings():
 						warnings.simplefilter('ignore', BiopythonWarning)
 						splicedAA = Seq( checkSeq ).translate(table=GAPPED_CODON_TABLE)
-					if "*" in splicedAA:
+					if "*" in splicedAA[:-1]: #assume last-codon stop is a gene annotation thing
 						status[ stringhit ] = { 'type':'P', 'notes':["internal stop codon"] }
 						break #if secreted has stop codon, don't also check M, so it doesn't end up listed twice
 
