@@ -1,0 +1,162 @@
+#!/usr/bin/env Rscript
+
+# gatorADE: Annotation vs Database Evaluation for ALIGaToR
+#
+# This script takes the gff file output by ALIGaToR and
+#     compares the annotations to a reference bedfile to
+#     evaluate the performance of ALIGaToR.
+# Can provide an optional digger csv output file as the
+#     third argument to add that to the comparison.
+
+require(bedtoolsr)
+library(stringr)
+library(dplyr)
+library(tidyr)
+library(ggalluvial)
+
+args <- commandArgs( trailingOnly=T )
+
+ref    <- read.table(args[1],header=F,sep="\t")
+rGenes <- ref %>% filter( str_detect(V4, "gene$") )
+
+ann    <- read.table(args[2],skip=2,header=F,sep="\t")
+aGenes <- ann %>% filter( str_detect(V3, "gene$") ) %>% 
+				  mutate(V4=V4-1) %>% 
+				  select( V1, V2=V4, V3=V5, V4=V9, V5=V6, V6=V7 )
+
+fig_theme = theme_classic() + theme(text = element_text(color="black"),
+									axis.title = element_text(size=7, color="black"),
+									axis.text  = element_text(size=7, color="black"),
+									legend.title = element_text(size=7, color="black"),
+									legend.text  = element_text(size=7, color="black"))
+
+
+outTable <- "differences.tsv"
+if( length(args) > 2 ){
+	outTable <- args[3]
+}
+
+outPng <- "annotations.png"
+if( length(args) > 3 ){
+	outPng <- args[4]
+}
+
+if( length(args)>4 ){
+	#with digger
+	dig    <- read.table(args[5],header=T,sep=",")
+	dGenes <- dig %>% filter( imgt_match != "" ) %>%
+					  mutate( V1=toupper(contig), V2=start, V3=end,
+							  V4=paste(imgt_match,functional), V5=blast_score, 
+							  V6=sense, .keep="none" ) %>%
+					  #manual handling for two sets of overlapping gene calls
+					  filter( V2 != 267818 & V2 !=690709 )
+
+	#manual handling for overlapping gene calls:
+	rGenes <- rGenes %>% filter( V2 != 267594 )
+
+	int <- bt.multiinter( i=list(aGenes,rGenes,dGenes) )
+	mer <- bt.merge( int )
+	all <- bt.intersect( a=mer, b=list(aGenes,rGenes,dGenes), wa=T,wb=T ) %>%
+#					  group_by( V1,V2,V3,V4 ) %>% filter( n()==1 ) %>% ungroup() %>%
+					  pivot_wider( id_cols=c(V1,V2,V3), names_from=V4, values_from=c(V5,V6,V7,V8,V9,V10) ) %>%
+					  select( V1a=V5_1, V2a=V6_1, V3a=V7_1, V4a=V8_1, V5a=V9_1, V6a=V10_1,
+					  		  V1r=V5_2, V2r=V6_2, V3r=V7_2, V4r=V8_2, V5r=V9_2, V6r=V10_2,
+					  		  V1d=V5_3, V2d=V6_3, V3d=V7_3, V4d=V8_3, V5d=V9_3, V6d=V10_3 )
+
+	#add back the overlaps that we removed above
+	all <- rbind( all, c(NA,NA,NA,NA,NA,NA,"MF989451",267594,268113,"IGHV3-AFX*01 pseudogene",".","+","MF989451",267818,268113,"IGHV3-46*03 pseudo",98.31,"+"),
+					   c(NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,"MF989451",690709,690739,"IGHJ3*01 pseudo",16.13,"+")
+					   )
+
+	all <- all %>% mutate( al=ifelse( is.na(V4a), "NA", str_match(V4a,"functionality=([^;]+)")[,2] ),
+					  	   ref=ifelse( is.na(V4r), "NA", str_match(V4r,"(ORF|pseudo)? ?gene$")[,2] ),
+					  	   ref=ifelse( is.na(ref), "F", ifelse( ref=="pseudo", "P", ref ) ),
+					  	   dig=ifelse( is.na(V4d), "NA", str_match(V4d,"(Functional|ORF|pseudo)$")[,2] ),
+					  	   dig=ifelse( dig=="Functional", "F", ifelse(dig=="pseudo","P",dig) ),
+					  	   type=ifelse( is.na(V4a),
+					  	   				ifelse(is.na(V4r), str_match(V4d,"IGH([VDJ])")[,2], str_match(V4r,"IGH([VDJCAEGM])")[,2]),
+					  	   				str_match(V4a, "IGH([VDJC])")[,2]
+					  	   				),
+					  	   type=ifelse( type %in% c("A","E","G","M"), "C", 
+										ifelse(type=="D" & is.na(V4a) & !is.na(V4r), 
+												ifelse( is.na(str_match(V4r,"IGHD*")[,1]), "D", "C" ),
+												type
+												)
+										)
+					  	   )
+
+	write.table( all %>% filter( !(al==ref & ref==dig) ), outTable, quote=F, sep="\t", na="", row.names=F, col.names=F)
+
+	summDat <- all %>% count( type, al, ref, dig )
+	summDat$ref <- factor( summDat$ref, levels=c("NA","P","ORF","F") )
+	summDat$al <- factor( summDat$al, levels=c("NA","P","ORF","F") )
+	summDat$dif <- factor( summDat$dig, levels=c("NA","P","ORF","F") )
+	summDat$type <- factor( summDat$type, levels=c("V","D","J","C") )
+
+	pt <- ggplot( summDat, aes(axis1=ref, axis2=al, axis3=dig, y=n) ) + 
+		geom_alluvium( aes(fill=type), alpha=.75 ) + geom_stratum() +
+		geom_text(stat = "stratum", aes(label = after_stat(stratum)), color="black") + 
+		scale_x_discrete(limits=c("reference","aligator","digger"),expand=c(0.05,0.05)) +
+		scale_y_continuous(name="Number of genes",limits=c(0,sum(summDat$n)), expand=c(0,0)) +
+		scale_fill_manual( values=c("blue","magenta","red","darkgreen") ) +
+		fig_theme
+	ggsave(outPng, pt, bg='white', h=3, w=4, dpi=300)
+
+
+
+} else {
+
+	#just two to compare
+
+	aBoth <- bt.intersect(a=aGenes,b=rGenes,wb=TRUE) 
+	if( length(aBoth$V4)>0 ){
+		aBoth <- aBoth %>% 
+				mutate( al=str_match(V4,"functionality=([^;]+)")[,2], 
+						ref=str_match(V10,"(ORF|pseudo)? ?gene$")[,2],
+						ref=ifelse( is.na(ref), "F", ifelse( ref=="pseudo", "P", ref ) ),
+						type=str_match(V4, "(IG|TR)[ABDHKL]([VDJC])")[,3] )
+			}
+
+	aOnly <- bt.intersect(a=aGenes,b=rGenes,v=TRUE) 
+	if( length(aOnly$V4)>0 ){
+		aOnly <- aOnly %>% 
+				mutate( al=str_match(V4,"functionality=([^;]+)")[,2], 
+						ref="NA",
+						type=str_match(V4, "(IG|TR)[ABDHKL]([VDJC])")[,3] )
+			}
+
+	rOnly <- bt.intersect(b=aGenes,a=rGenes,v=TRUE) 
+	if( length(rOnly$V4)>0 ){
+		rOnly <- rOnly %>% 
+				mutate( ref=str_match(V4,"(ORF|pseudo)? ?gene$")[,2],
+						ref=ifelse( is.na(ref), "F", ifelse( ref=="pseudo", "P", ref ) ),
+						al="NA",
+						type=str_match(V4, "(IG|TR)[ABDHKL]([VDJCAEGM])")[,3],
+						type=ifelse( type %in% c("A","E","G","M"), "C", 
+										ifelse(type=="D", 
+												ifelse( is.na(str_match(V4,"IGHD*")[,1]), "D", "C" ),
+												type
+												)
+									)  ) %>%
+				rename( V7=V1, V8=V2, V9=V3, V10=V4, V11=V5, V12=V6 )
+			}
+
+	allDat <- bind_rows(aBoth,aOnly,rOnly)
+	write.table( allDat %>% filter(al != ref), outTable, quote=F, sep="\t", na="", row.names=F, col.names=F)
+
+	summDat <- allDat %>% count( type, al, ref )
+	summDat$ref <- factor( summDat$ref, levels=c("NA","P","ORF","F") )
+	summDat$al <- factor( summDat$al, levels=c("NA","P","ORF","F") )
+	summDat$type <- factor( summDat$type, levels=c("V","D","J","C") )
+
+	pt <- ggplot( summDat, aes(axis1=ref, axis2=al, y=n) ) + 
+		geom_alluvium( aes(fill=type), alpha=.75 ) + geom_stratum() +
+		geom_text(stat = "stratum", aes(label = after_stat(stratum)), color="black") + 
+		scale_x_discrete(limits=c("reference","aligator"),expand=c(0.05,0.05)) +
+		scale_y_continuous(name="Number of genes",limits=c(0,sum(summDat$n)), expand=c(0,0)) +
+		scale_fill_manual( values=c("blue","magenta","red","darkgreen"), breaks=c("V","D","J","C") ) +
+		fig_theme
+	ggsave(outPng, pt, bg='white', h=3, w=3, dpi=300)
+
+}
+

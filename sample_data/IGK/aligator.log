@@ -1,0 +1,22 @@
+
+Wed Mar 12 01:14:01 2025 -- ALIGaToR  run with command:
+	../../aligator extract BK063716 BK063716.bed --fasta BK063716.fasta
+Wed Mar 12 01:14:21 2025 -- Program finished successfully
+
+Wed Mar 12 01:14:22 2025 -- ALIGaToR  run with command:
+	../../aligator predict MF989473.fa MF989473
+Wed Mar 12 01:14:22 2025 -- Program finished successfully
+
+Wed Mar 12 01:14:23 2025 -- ALIGaToR  run with command:
+	../../aligator annotate MF989473.fa MF989473.RSS12.bed MF989473.RSS23.bed IGK BK063716.fasta BK063716.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
+Adjusting IGKV2-68*01 V-Region stop position from 107146 to 107147 to account for RSS detection
+Adjusting IGKV2-68*01 V-Region start position from 85460 to 85459 to account for RSS detection
+IGKV1-80*e486 marked as pseudogene due to internal stop codon
+IGKV2-78*00fa marked as pseudogene due to internal stop codon
+Discarding MF989473	18644	19400	IGKV2-58*01	475	+ due to incomplete 3' end
+IGKV2-90*0cc2 marked as pseudogene due to internal stop codon
+Discarding MF989473	58538	58913	IGKV6-55*01	204	+ due to incomplete 5' end
+Discarding MF989473	76074	76251	IGKV3-42*01	110	+ due to incomplete 5' end
+Discarding MF989473	77578	77939	IGKV1-16*01	153	+ due to incomplete 5' end
+IGKJ5*01 marked as ORF due to no RSS
+Wed Mar 12 01:14:28 2025 -- Program finished successfully

@@ -1,0 +1,114 @@
+
+Wed Mar 12 01:00:16 2025 -- ALIGaToR  run with command:
+	../../aligator extract BK063715 BK063715.bed --fasta BK063715.fasta
+Wed Mar 12 01:00:44 2025 -- Program finished successfully
+
+Wed Mar 12 01:00:44 2025 -- ALIGaToR  run with command:
+	../../aligator predict MF989451.fa MF989451
+Wed Mar 12 01:00:46 2025 -- Program finished successfully
+
+Wed Mar 12 01:00:47 2025 -- ALIGaToR  run with command:
+	../../aligator annotate MF989451.fa MF989451.RSS12.bed MF989451.RSS23.bed IGH BK063715.fasta BK063715.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
+Discarding MF989451	107833	108222	IGHV3-183*01	226	+ due to incomplete 5' end
+Discarding MF989451	109268	109705	IGHV3-183*01	261	+ due to incomplete 5' end
+Discarding MF989451	118102	118489	IGHV3-110*01	99.9	+ due to incomplete 5' end
+IGHV3-100*fdaa marked as pseudogene due to internal stop codon
+IGHV3-119*c5d8 marked as pseudogene due to internal stop codon
+IGHV3-186*cefe marked as pseudogene due to internal stop codon
+Discarding MF989451	171110	171361	IGHV4-92*01	106	+ due to incomplete 5' end
+Discarding MF989451	198913	199099	IGHV3-12*01	171	+ due to incomplete 3' end
+Discarding MF989451	200208	200515	IGHV4-122*01	177	+ due to incomplete 5' end
+Discarding MF989451	210192	210503	IGHV4-99*01	134	+ due to incomplete 5' end
+Discarding MF989451	21022	21311	IGHV1-69*01	294	+ due to incomplete 3' end
+Discarding MF989451	220131	220493	IGHV4-99*01	228	+ due to incomplete 5' end
+IGHV3-28*4108 marked as pseudogene due to internal stop codon
+Discarding MF989451	24729	24913	IGHV3-13*01	103	+ due to incomplete 5' end
+IGHV3-119*c0a4 marked as pseudogene due to internal stop codon
+Discarding MF989451	267734	268152	IGHV3-136*01	440	+ due to incomplete 5' end
+Discarding MF989451	270636	271073	IGHV3-183*01	272	+ due to incomplete 5' end
+IGHV3-176*b7db marked as pseudogene due to internal stop codon
+Discarding MF989451	289444	289829	IGHV3-37*01	148	+ due to incomplete 5' end
+IGHV3-18*f107 marked as ORF due to noncanonical splice donor GC
+Discarding MF989451	299595	299784	IGHV3-8*01	175	+ due to incomplete 3' end
+Discarding MF989451	300812	301122	IGHV4-93*01	126	+ due to incomplete 5' end
+Discarding MF989451	310647	311007	IGHV4-99*01	210	+ due to incomplete 5' end
+Discarding MF989451	331398	331849	IGHV3-134*01	437	+ due to incomplete 3' end
+Discarding MF989451	35887	36105	IGHV3-103*01	131	+ due to incomplete 5' end
+IGHV3-119*8006 marked as pseudogene due to internal stop codon
+Discarding MF989451	387108	387401	IGHV4-127*01	131	+ due to incomplete 5' end
+IGHV4-160*916e marked as ORF due to no RSS
+Discarding MF989451	428073	428162	IGHV4-106*01	142	+ due to incomplete 5' end
+IGHV3-119*590c marked as pseudogene due to missing/incorrect start codon
+Discarding MF989451	455246	455559	IGHV4-122*01	137	+ due to incomplete 5' end
+IGHV3-28*10b9 marked as pseudogene due to missing/incorrect start codon
+Discarding MF989451	495663	496006	IGHV4-127*01	141	+ due to incomplete 5' end
+Discarding MF989451	539382	539748	IGHV4-99*01	226	+ due to incomplete 5' end
+IGHV3-28*d3a5 marked as pseudogene due to internal stop codon
+Discarding MF989451	58008	58316	IGHV4-122*01	179	+ due to incomplete 5' end
+IGHV3-28*e1b1 marked as pseudogene due to internal stop codon
+Discarding MF989451	83068	83395	IGHV3-110*01	137	+ due to incomplete 5' end
+IGHV3-119*a542 marked as pseudogene due to internal stop codon
+IGHV3-119*0a44 marked as pseudogene due to internal stop codon
+IGHV3-28*6572 marked as pseudogene due to internal stop codon
+Adjusting IGHD4-11*01 D start position from 610704 to 610706 to account for RSS detection
+Adjusting IGHD4-17*01 D start position from 621198 to 621190 to account for RSS detection
+Adjusting IGHD4-17*01 D start position from 622830 to 622822 to account for RSS detection
+Warning: 'MF989451	601463	601542	IGHD5-5*01	120	+' appears to be a subset of several sequences: IGHD5-5*01,IGHD5-30*01.
+    Arbitrarily using IGHD5-5*01 for naming purposes...
+Warning: 'MF989451	603950	604027	IGHD6-6*01	123	+' appears to be a subset of several sequences: IGHD6-6*01,IGHD6-31*01.
+    Arbitrarily using IGHD6-6*01 for naming purposes...
+Warning: 'MF989451	611645	611721	IGHD5-12*01	122	+' appears to be a subset of several sequences: IGHD5-12*01,IGHD5-18*01.
+    Arbitrarily using IGHD5-12*01 for naming purposes...
+Warning: 'MF989451	624670	624746	IGHD5-18*01	118	+' appears to be a subset of several sequences: IGHD5-12*01,IGHD5-18*01.
+    Arbitrarily using IGHD5-12*01 for naming purposes...
+Warning: 'MF989451	625914	625990	IGHD5-18*01	118	+' appears to be a subset of several sequences: IGHD5-12*01,IGHD5-18*01.
+    Arbitrarily using IGHD5-12*01 for naming purposes...
+Warning: 'MF989451	646305	646384	IGHD5-30*01	123	+' appears to be a subset of several sequences: IGHD5-5*01,IGHD5-30*01.
+    Arbitrarily using IGHD5-5*01 for naming purposes...
+IGHD4-11*01 marked as ORF due to no 3' RSS
+IGHD6-19*01 marked as ORF due to no 3' RSS
+IGHD1-26*01 marked as ORF due to no 3' RSS
+IGHD1-32*01 marked as ORF due to no 3' RSS
+IGHD1-38*01 marked as ORF due to no RSS
+IGHD5-42*01 marked as ORF due to no 3' RSS
+IGHJ2*01 marked as ORF due to no RSS
+Discarding MF989451	556	3604	IGHCD*03	294	+ due to incomplete 5' end
+Discarding MF989451	75762	76550	IGHCD*03	282	+ due to incomplete 5' end
+Discarding MF989451	173238	173528	IGHCD*03	248	+ due to incomplete 5' end
+Discarding MF989451	249916	250850	IGHCD*03	267	+ due to incomplete 5' end
+Discarding MF989451	293056	293369	IGHCD*03	240	- due to incomplete 5' end
+Discarding MF989451	298384	298680	IGHCD*03	253	- due to incomplete 5' end
+Discarding MF989451	390343	390658	IGHCD*03	242	+ due to incomplete 5' end
+Discarding MF989451	466275	466917	IGHCD*03	282	+ due to incomplete 5' end
+Discarding MF989451	495120	495412	IGHCD*03	252	+ due to incomplete 5' end
+Discarding MF989451	540734	541614	IGHCD*03	282	- due to incomplete 5' end
+Discarding MF989451	684996	685902	IGHCD*03	294	+ due to incomplete 5' end
+Discarding MF989451	748920	749209	IGHCD*03	252	+ due to incomplete 5' end
+Discarding MF989451	759146	759988	IGHCD*03	272	- due to incomplete 5' end
+Discarding MF989451	785858	792321	IGHCG1*03	4401	+ due to incomplete 5' end
+Discarding MF989451	818403	818992	IGHCD*03	267	+ due to incomplete 5' end
+Discarding MF989451	922742	930923	IGHCG4*05	3274	+ due to splice acceptor in alignment gap in exon 6
+Discarding MF989451	1021369	1022528	IGHCD*03	269	+ due to incomplete 5' end
+Discarding MF989451	1033092	1033394	IGHCD*03	256	- due to incomplete 5' end
+Discarding MF989451	1049713	1050005	IGHCD*03	256	+ due to incomplete 5' end
+Discarding MF989451	1053454	1054380	IGHCD*03	252	- due to incomplete 5' end
+Discarding MF989451	1059384	1059675	IGHCD*03	256	- due to incomplete 5' end
+Discarding MF989451	1073798	1074112	IGHCD*03	244	+ due to incomplete 5' end
+Discarding MF989451	1124609	1124898	IGHCD*03	242	- due to incomplete 5' end
+Discarding MF989451	1147589	1155614	IGHCD*03	264	+ due to splice acceptor in alignment gap in exon 3
+Discarding MF989451	1151941	1152232	IGHCD*03	239	- due to incomplete 5' end
+Discarding MF989451	1173789	1174083	IGHCD*03	267	+ due to incomplete 5' end
+Discarding MF989451	1181763	1182048	IGHCD*03	250	- due to incomplete 5' end
+Discarding MF989451	1186777	1187073	IGHCD*03	245	+ due to incomplete 5' end
+Discarding MF989451	1221795	1225150	IGHCD*03	252	- due to incomplete 5' end
+Discarding MF989451	1233924	1234220	IGHCD*03	244	+ due to incomplete 5' end
+Discarding MF989451	1242283	1242563	IGHCD*03	247	+ due to incomplete 5' end
+Discarding MF989451	1291449	1293331	IGHCD*03	256	+ due to incomplete 5' end
+Discarding MF989451	1299328	1304386	IGHCD*03	258	+ due to incomplete 5' end
+Discarding MF989451	1303145	1303436	IGHCD*03	242	- due to incomplete 5' end
+Discarding MF989451	1312030	1315435	IGHCD*03	280	- due to incomplete 5' end
+Discarding MF989451	1320762	1321052	IGHCD*03	248	- due to incomplete 5' end
+Discarding MF989451	1329557	1329853	IGHCD*03	253	- due to incomplete 5' end
+Discarding MF989451	1353635	1354255	IGHCD*03	272	- due to incomplete 5' end
+Discarding MF989451	1357582	1357872	IGHCD*03	256	+ due to incomplete 5' end
+Wed Mar 12 01:01:46 2025 -- Program finished successfully

@@ -1,0 +1,42 @@
+
+Wed Mar 12 01:17:05 2025 -- ALIGaToR  run with command:
+	../../aligator extract BK068295 ferret_TRB_geneRef_withPseudo.bed --fasta ferret_TRB.fasta --pseudo
+Wed Mar 12 01:17:17 2025 -- Program finished successfully
+
+Wed Mar 12 01:17:17 2025 -- ALIGaToR  run with command:
+	../../aligator extract BK065025 dog_TRB.bed --fasta dog_TRB.fasta
+Wed Mar 12 01:17:29 2025 -- Program finished successfully
+
+Wed Mar 12 01:17:30 2025 -- ALIGaToR  run with command:
+	../../aligator predict ferret_TRB.fasta ferret_TRB --species MM
+Wed Mar 12 01:17:31 2025 -- Program finished successfully
+
+Wed Mar 12 01:17:31 2025 -- ALIGaToR  run with command:
+	../../aligator annotate ferret_TRB.fasta ferret_TRB.RSS12.bed ferret_TRB.RSS23.bed TRB dog_TRB.fasta dog_TRB.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
+Discarding BK068295	114275	114649	TRBV12-2*01	155	+ due to incomplete 5' end
+Discarding BK068295	145027	145373	TRBV26*01	106	+ due to incomplete 5' end
+TRBV7*b3f4 marked as pseudogene due to internal stop codon
+Discarding BK068295	151532	152032	TRBV24*01	183	+ due to incomplete 5' end
+Discarding BK068295	157885	158192	TRBV5-4*01	148	+ due to incomplete 5' end
+TRBV5-4*9702 marked as pseudogene due to internal stop codon
+Discarding BK068295	175408	175875	TRBV10*01	488	+ due to incomplete 5' end
+Discarding BK068295	183197	183543	TRBV7*01	101	+ due to incomplete 5' end
+Discarding BK068295	189874	190326	TRBV12-2*01	418	+ due to incomplete 5' end
+TRBV16*4fe1 marked as ORF due to no RSS
+Discarding BK068295	212551	212888	TRBV7*01	118	+ due to incomplete 5' end
+Discarding BK068295	220125	220350	TRBV18*01	166	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068295	220432	220808	TRBV18*01	420	+ due to incomplete 5' end
+Discarding BK068295	223733	224083	TRBV10*01	115	+ due to incomplete 5' end
+Discarding BK068295	236553	236945	TRBV16*01	258	+ due to incomplete 5' end
+Discarding BK068295	243790	244079	TRBV16*01	145	+ due to incomplete 5' end
+TRBV24*492c marked as pseudogene due to internal stop codon
+Discarding BK068295	269919	270274	TRBV10*01	153	+ due to incomplete 5' end
+TRBV28*a794 marked as pseudogene due to internal stop codon
+Discarding BK068295	283772	284033	TRBV29*01	221	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068295	284069	284435	TRBV29*01	410	+ due to incomplete 5' end
+TRBV30*d95e marked as pseudogene due to internal stop codon
+Warning: bedtools merge failed for TRBC. Maybe no blast hits were found on this contig?
+Skipping...
+
+
+Wed Mar 12 01:17:39 2025 -- Program finished successfully

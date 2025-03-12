@@ -1,0 +1,26 @@
+
+Wed Mar 12 01:17:40 2025 -- ALIGaToR  run with command:
+	../../../aligator extract BK068295 ferret_TRB_geneRef_noPseudo.bed
+Wed Mar 12 01:17:48 2025 -- Program finished successfully
+
+Wed Mar 12 01:17:49 2025 -- ALIGaToR  run with command:
+	../../../aligator annotate ../ferret_TRB.fasta ../ferret_TRB.RSS12.bed ../ferret_TRB.RSS23.bed TRB ../ferret_TRB.fasta ferret_TRB_geneRef_noPseudo.bed --outgff self_predictedGenes.gff --outfasta self_predictedGenes.fasta
+Discarding BK068295	114274	114649	TRBV12-2*01	148	+ due to incomplete 5' end
+Discarding BK068295	144054	144154	TRBV6*02	150	+ due to incomplete 5' end
+TRBV6*05ed marked as ORF due to noncanonical splice donor GC
+TRBV7-2*b3f4 marked as pseudogene due to internal stop codon
+Discarding BK068295	157886	158205	TRBV5-4*01	114	+ due to incomplete 5' end
+TRBV5-4*9702 marked as pseudogene due to internal stop codon
+Discarding BK068295	175398	175875	TRBV6*02	156	+ due to incomplete 5' end
+TRBV16*4fe1 marked as ORF due to no RSS
+Discarding BK068295	212539	212839	TRBV7-2*02	106	+ due to incomplete 5' end
+Discarding BK068295	243728	244088	TRBV21*01	177	+ due to incomplete 5' end
+Discarding BK068295	250145	250499	TRBV8*02	182	+ due to incomplete 5' end
+Discarding BK068295	277400	277728	TRBV27*02	175	+ due to incomplete 5' end
+TRBD1*01 marked as ORF due to no 3' RSS
+TRBD2*01 marked as ORF due to no 3' RSS
+TRBJ1-2*01 marked as ORF due to no RSS
+TRBJ1-5*01 marked as ORF due to no RSS
+TRBJ2-1*01 marked as ORF due to no RSS
+TRBJ2-5*01 marked as ORF due to no RSS
+Wed Mar 12 01:17:58 2025 -- Program finished successfully

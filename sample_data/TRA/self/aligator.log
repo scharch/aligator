@@ -1,0 +1,160 @@
+
+Wed Mar 12 01:16:15 2025 -- ALIGaToR  run with command:
+	../../../aligator extract BK068537 ferret_TRA_geneRef_noPseudo.bed
+Wed Mar 12 01:16:29 2025 -- Program finished successfully
+
+Wed Mar 12 01:16:29 2025 -- ALIGaToR  run with command:
+	../../../aligator annotate ../ferret_TRA.fasta ../ferret_TRA.RSS12.bed ../ferret_TRA.RSS23.bed TRA ../ferret_TRA.fasta ferret_TRA_geneRef_noPseudo.bed --outgff self_predictedGenes.gff --outfasta self_predictedGenes.fasta
+Adjusting TRAV43-10*01 V-Region stop position from 300468 to 300466 to account for RSS detection
+Discarding BK068537	108325	108480	TRAV41*01	133	+ due to incomplete 5' end
+Discarding BK068537	110940	111079	TRAV14-2*01	114	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068537	120414	120542	TRAV41*01	112	+ due to incomplete 5' end
+Discarding BK068537	126713	126840	TRAV41*01	110	+ due to incomplete 5' end
+Discarding BK068537	129594	129973	TRAV13-13*01	497	+ due to incomplete 3' end
+Discarding BK068537	134114	134326	TRAV6*01	134	- due to incomplete 5' end
+Discarding BK068537	138128	138284	TRAV41*01	112	+ due to incomplete 5' end
+Discarding BK068537	14373	14536	TRAV6*01	129	- due to incomplete 5' end
+Discarding BK068537	14398	14540	TRAV41*01	136	+ due to incomplete 5' end
+TRAV13-11*eb4b marked as pseudogene due to internal stop codon
+TRAV14-2*3e24 marked as ORF due to no RSS
+Discarding BK068537	166229	166357	TRAV41*01	122	- due to incomplete 5' end
+TRAV43-1*230f marked as pseudogene due to internal stop codon
+TRAV13-11*2ab6 marked as pseudogene due to internal stop codon
+Discarding BK068537	189823	189976	TRAV41*01	107	+ due to incomplete 5' end
+Discarding BK068537	192484	192618	TRAV14-3*01	112	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068537	198201	198314	TRAV41*01	117	+ due to incomplete 5' end
+Discarding BK068537	206276	206472	TRAV6*01	117	- due to incomplete 5' end
+Discarding BK068537	207280	207634	TRAV13-13*01	435	+ due to incomplete 3' end
+Discarding BK068537	214858	215040	TRAV13-11*01	242	+ due to incomplete 5' end
+Discarding BK068537	218865	219061	TRAV6*01	99.9	- due to incomplete 5' end
+Discarding BK068537	220352	220558	TRAV6*01	144	- due to incomplete 5' end
+Discarding BK068537	220404	220555	TRAV41*01	122	+ due to incomplete 5' end
+Discarding BK068537	22180	22545	TRAV8-2*01	429	+ due to incomplete 5' end
+TRAV9-9*d345 marked as ORF due to missing invariant residue
+TRAV13-11*3b29 marked as pseudogene due to missing/incorrect start codon
+Discarding BK068537	251113	251307	TRAV6*01	123	+ due to incomplete 5' end
+Discarding BK068537	251113	251248	TRAV41*01	110	- due to incomplete 5' end
+Discarding BK068537	254332	254467	TRAV41*01	110	- due to incomplete 5' end
+Discarding BK068537	256788	256916	TRAV41*01	128	- due to incomplete 5' end
+Discarding BK068537	259948	260166	TRAV6*01	120	- due to incomplete 5' end
+Discarding BK068537	260013	260162	TRAV41*01	129	+ due to incomplete 5' end
+TRAV13-13*957a marked as pseudogene due to internal stop codon
+Discarding BK068537	27643	27763	TRAV6*01	106	+ due to incomplete 5' end
+TRAV13-12*d9fa marked as pseudogene due to internal stop codon
+Discarding BK068537	283988	284142	TRAV41*01	117	+ due to incomplete 5' end
+Discarding BK068537	286625	286729	TRAV14-3*01	106	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068537	30028	30222	TRAV41*01	107	- due to incomplete 5' end
+Discarding BK068537	309526	309719	TRAV6*01	115	- due to incomplete 5' end
+Discarding BK068537	312147	312331	TRAV6*01	133	- due to incomplete 5' end
+Discarding BK068537	312190	312325	TRAV41*01	109	+ due to incomplete 5' end
+Discarding BK068537	315130	315326	TRAV6*01	118	- due to incomplete 5' end
+Discarding BK068537	31763	31939	TRAV6*01	118	- due to incomplete 5' end
+Discarding BK068537	32080	32281	TRAV6*01	106	- due to incomplete 5' end
+TRAV43-8*5c5e marked as pseudogene due to internal stop codon
+Discarding BK068537	33440	33581	TRAV41*01	120	- due to incomplete 5' end
+Discarding BK068537	33441	33640	TRAV6*01	99.9	+ due to incomplete 5' end
+TRAV14-3*be16 marked as pseudogene due to internal stop codon
+Discarding BK068537	33655	33791	TRAV41*01	109	- due to incomplete 5' end
+Discarding BK068537	339735	339863	TRAV41*01	134	- due to incomplete 5' end
+TRAV9-7*76b7 marked as pseudogene due to internal stop codon
+Discarding BK068537	361815	361938	TRAV41*01	117	+ due to incomplete 5' end
+Discarding BK068537	377600	377875	TRAV9-16*01	263	+ due to incomplete 3' end
+TRAV14-1*ee74 marked as pseudogene due to internal stop codon
+Discarding BK068537	399787	399917	TRAV41*01	109	- due to incomplete 5' end
+TRAV14-3*e721 marked as pseudogene due to internal stop codon
+Discarding BK068537	414250	414450	TRAV6*01	107	+ due to incomplete 5' end
+Discarding BK068537	414265	414391	TRAV41*01	110	- due to incomplete 5' end
+Discarding BK068537	41941	42272	TRAV18-2*01	412	+ due to incomplete 5' end
+TRAV13-11*f76f marked as pseudogene due to internal stop codon
+Discarding BK068537	440477	440882	TRAV14-1*01	210	+ due to incomplete 3' end
+Discarding BK068537	442396	442597	TRAV6*01	112	+ due to incomplete 5' end
+TRAV9-19*7a89 marked as pseudogene due to internal stop codon
+Discarding BK068537	445874	446075	TRAV6*01	104	- due to incomplete 5' end
+Discarding BK068537	445950	446072	TRAV41*01	109	+ due to incomplete 5' end
+TRAV43-13*6ece marked as ORF due to missing invariant residue
+TRAV13-13*a7c6 marked as pseudogene due to internal stop codon
+TRAV9-19*a6b8 marked as ORF due to noncanonical splice acceptor GG
+Discarding BK068537	499037	499292	TRAV5*01	118	+ due to incomplete 5' end
+Discarding BK068537	504360	504481	TRAV41*01	117	+ due to incomplete 5' end
+Discarding BK068537	527609	527737	TRAV41*01	112	- due to incomplete 5' end
+Discarding BK068537	528148	528379	TRAV6*01	120	+ due to incomplete 5' end
+Discarding BK068537	538721	538939	TRAV6*01	107	- due to incomplete 5' end
+Discarding BK068537	542635	542764	TRAV41*01	110	- due to incomplete 5' end
+Discarding BK068537	547863	548005	TRAV41*01	125	- due to incomplete 5' end
+Discarding BK068537	552345	552485	TRAV41*01	109	- due to incomplete 5' end
+Discarding BK068537	552530	552725	TRAV6*01	99.9	+ due to incomplete 5' end
+Discarding BK068537	559019	559376	TRAV8-2*01	309	+ due to incomplete 5' end
+Discarding BK068537	559778	559969	TRAV41*01	112	- due to incomplete 5' end
+TRAV22*d528 marked as ORF due to noncanonical splice donor GA
+Discarding BK068537	565444	565636	TRAV6*01	104	- due to incomplete 5' end
+Discarding BK068537	571364	571577	TRAV6*01	106	+ due to incomplete 5' end
+Discarding BK068537	573006	573205	TRAV6*01	106	- due to incomplete 5' end
+Discarding BK068537	574705	574903	TRAV6*01	120	+ due to incomplete 5' end
+Discarding BK068537	576165	576366	TRAV6*01	118	- due to incomplete 5' end
+Discarding BK068537	577546	577842	TRAV19*01	115	+ due to incomplete 5' end
+TRAV43-2*a402 marked as ORF due to no RSS
+Discarding BK068537	605608	605740	TRAV41*01	109	- due to incomplete 5' end
+Discarding BK068537	60582	60721	TRAV41*01	136	+ due to incomplete 5' end
+Discarding BK068537	624225	624490	TRAV34*01	129	+ due to incomplete 5' end
+Discarding BK068537	626863	627053	TRAV38-1*01	98.3	+ due to incomplete 5' end
+Discarding BK068537	63073	63275	TRAV6*01	107	- due to incomplete 5' end
+Discarding BK068537	632125	632441	TRAV13-2*01	118	+ due to incomplete 5' end
+TRAV26*6532 marked as ORF due to no RSS
+Discarding BK068537	640499	640693	TRAV6*01	103	+ due to incomplete 5' end
+Discarding BK068537	662645	662783	TRAV41*01	109	+ due to incomplete 5' end
+Discarding BK068537	663635	663815	TRAV6*01	112	- due to incomplete 5' end
+Discarding BK068537	663677	663816	TRAV41*01	118	+ due to incomplete 5' end
+Discarding BK068537	665280	665407	TRAV41*01	118	- due to incomplete 5' end
+Discarding BK068537	665281	665462	TRAV6*01	106	+ due to incomplete 5' end
+Discarding BK068537	66675	66868	TRAV6*01	114	- due to incomplete 5' end
+Discarding BK068537	66748	66870	TRAV41*01	118	+ due to incomplete 5' end
+Discarding BK068537	674669	674860	TRAV6*01	104	+ due to incomplete 5' end
+Discarding BK068537	683048	683196	TRAV41*01	120	- due to incomplete 5' end
+Discarding BK068537	683235	683379	TRAV37*01	152	- due to incomplete 5' end
+TRAV37*90cf marked as ORF due to noncanonical splice acceptor GG
+Discarding BK068537	689948	690133	TRAV41*01	118	- due to incomplete 5' end
+Discarding BK068537	698401	698536	TRAV41*01	129	+ due to incomplete 5' end
+Discarding BK068537	70029	70186	TRAV41*01	110	+ due to incomplete 5' end
+TRAV14-1*f2ee marked as ORF due to noncanonical splice acceptor GG
+Discarding BK068537	717117	717250	TRAV41*01	117	- due to incomplete 5' end
+Discarding BK068537	735525	735651	TRAV41*01	109	- due to incomplete 5' end
+Discarding BK068537	761127	761266	TRAV41*01	125	- due to incomplete 5' end
+Discarding BK068537	761130	761330	TRAV6*01	152	+ due to incomplete 5' end
+Discarding BK068537	762505	762722	TRAV6*01	117	- due to incomplete 5' end
+Discarding BK068537	762564	762704	TRAV41*01	109	+ due to incomplete 5' end
+Discarding BK068537	774518	774719	TRAV6*01	109	- due to incomplete 5' end
+Discarding BK068537	776925	777100	TRAV6*01	104	- due to incomplete 5' end
+Discarding BK068537	77995	78173	TRAV6*01	99.9	- due to incomplete 5' end
+Discarding BK068537	798014	798208	TRAV6*01	123	+ due to incomplete 5' end
+Discarding BK068537	816842	817027	TRAV6*01	106	+ due to incomplete 5' end
+Discarding BK068537	827749	827967	TRAV6*01	136	- due to incomplete 5' end
+Discarding BK068537	83597	83792	TRAV6*01	142	- due to incomplete 5' end
+Discarding BK068537	83662	83797	TRAV41*01	110	+ due to incomplete 5' end
+Discarding BK068537	84577	85135	TRAV43-12*01	630	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068537	847478	847622	TRAV41*01	120	- due to incomplete 5' end
+Discarding BK068537	847484	847656	TRAV6*01	147	+ due to incomplete 5' end
+Discarding BK068537	847997	848203	TRAV6*01	115	+ due to incomplete 5' end
+Discarding BK068537	851611	851790	TRAV6*01	120	- due to incomplete 5' end
+Discarding BK068537	851985	852188	TRAV6*01	123	+ due to splice donor in alignment gap in exon 1
+Discarding BK068537	852008	852163	TRAV41*01	110	- due to incomplete 5' end
+Discarding BK068537	903589	903783	TRAV6*01	117	+ due to incomplete 5' end
+TRAV13-12*d677 marked as pseudogene due to internal stop codon
+Discarding BK068537	928455	928663	TRAV6*01	104	- due to incomplete 5' end
+Discarding BK068537	930767	930906	TRAV41*01	118	- due to incomplete 5' end
+Discarding BK068537	930768	930972	TRAV6*01	126	+ due to incomplete 5' end
+Discarding BK068537	9957	10287	TRAV8-2*01	164	+ due to incomplete 5' end
+Adjusting TRAJ30*01 J start position from 911698 to 911696 to account for RSS detection
+Adjusting TRAJ4*01 J start position from 941609 to 941611 to account for RSS detection
+Adjusting TRAJ2*01 J start position from 943281 to 943279 to account for RSS detection
+TRAJ60*01 marked as ORF due to missing invariant residue
+TRAJ38*01 marked as ORF due to missing invariant residue
+TRAJ33*01 marked as ORF due to missing invariant residue
+TRAJ24*01 marked as ORF due to no RSS
+TRAJ20*01 marked as pseudogene due to internal stop codon
+TRAJ19*01 marked as ORF due to no RSS
+TRAJ17*01 marked as ORF due to missing invariant residue
+TRAJ11*01 marked as ORF due to missing invariant residue
+TRAJ9*01 marked as ORF due to missing invariant residue
+TRDD1*01 marked as ORF due to no 3' RSS
+TRDD2*01 marked as ORF due to no 3' RSS
+Wed Mar 12 01:17:03 2025 -- Program finished successfully

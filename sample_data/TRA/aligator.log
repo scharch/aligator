@@ -1,0 +1,80 @@
+
+Wed Mar 12 01:15:17 2025 -- ALIGaToR  run with command:
+	../../aligator extract BK068537 ferret_TRA_geneRef_withPseudo.bed --fasta ferret_TRA.fasta --pseudo
+Wed Mar 12 01:15:36 2025 -- Program finished successfully
+
+Wed Mar 12 01:15:37 2025 -- ALIGaToR  run with command:
+	../../aligator extract BK065026 dog_TRA.bed --fasta dog_TRA.fasta
+Wed Mar 12 01:15:53 2025 -- Program finished successfully
+
+Wed Mar 12 01:15:54 2025 -- ALIGaToR  run with command:
+	../../aligator predict ferret_TRA.fasta ferret_TRA --species MM
+Wed Mar 12 01:15:55 2025 -- Program finished successfully
+
+Wed Mar 12 01:15:56 2025 -- ALIGaToR  run with command:
+	../../aligator annotate ferret_TRA.fasta ferret_TRA.RSS12.bed ferret_TRA.RSS23.bed TRA dog_TRA.fasta dog_TRA.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
+Adjusting TRAV19*01 V-Region stop position from 530735 to 530740 to account for RSS detection
+Adjusting TRAV34*01 V-Region stop position from 645531 to 645533 to account for RSS detection
+Adjusting TRAV35*01 V-Region stop position from 651163 to 651164 to account for RSS detection
+Discarding BK068537	102741	103020	TRAV29*01	155	+ due to incomplete 5' end
+Discarding BK068537	152295	152574	TRAV29*01	126	+ due to incomplete 5' end
+Discarding BK068537	161351	161664	TRAV19*01	171	+ due to incomplete 5' end
+TRAV43-2*230f marked as pseudogene due to internal stop codon
+Discarding BK068537	181521	181877	TRAV24*01	96.7	+ due to incomplete 5' end
+TRAV43-5*9869 marked as ORF due to noncanonical splice donor TT
+Discarding BK068537	214858	215027	TRAV29*01	104	+ due to incomplete 5' end
+Discarding BK068537	22180	22545	TRAV8-1*01	426	+ due to incomplete 5' end
+TRAV9-5*d345 marked as ORF due to missing invariant residue
+Discarding BK068537	236225	236440	TRAV29*01	136	+ due to incomplete 5' end
+TRAV43-2*aca0 marked as ORF due to noncanonical splice donor TT
+Discarding BK068537	252287	252600	TRAV19*01	168	+ due to incomplete 5' end
+Discarding BK068537	29000	29289	TRAV23*01	133	+ due to incomplete 5' end
+Discarding BK068537	306054	306338	TRAV23*01	115	+ due to incomplete 5' end
+TRAV43-1*5c5e marked as pseudogene due to internal stop codon
+Discarding BK068537	335079	335390	TRAV19*01	147	+ due to incomplete 5' end
+TRAV9-5*76b7 marked as pseudogene due to internal stop codon
+TRAV43-2*6a6c marked as ORF due to noncanonical splice donor TT
+Discarding BK068537	365171	365530	TRAV24*01	118	+ due to incomplete 5' end
+Discarding BK068537	377600	377864	TRAV9-9*01	229	+ due to incomplete 3' end
+Discarding BK068537	379843	380069	TRAV38-2*01	115	+ due to incomplete 5' end
+Discarding BK068537	407811	408090	TRAV29*01	161	+ due to incomplete 5' end
+Discarding BK068537	408939	409248	TRAV38-1*01	107	+ due to incomplete 5' end
+Discarding BK068537	41954	42272	TRAV9-6*01	133	+ due to incomplete 5' end
+TRAV43-3*b2bc marked as ORF due to noncanonical splice donor TT
+Discarding BK068537	435172	435468	TRAV23*01	99.9	+ due to incomplete 5' end
+Discarding BK068537	44194	44488	TRAV9-12*01	117	+ due to incomplete 5' end
+TRAV9-8*7a89 marked as pseudogene due to internal stop codon
+TRAV43-3*6ece marked as ORF due to noncanonical splice donor TT; missing invariant residue
+Discarding BK068537	458495	458807	TRAV12*01	96.7	+ due to incomplete 5' end
+Discarding BK068537	469947	470298	TRAV33*01	107	+ due to incomplete 5' end
+TRAV9-8*a6b8 marked as ORF due to noncanonical splice acceptor GG
+TRAV10*9579 marked as pseudogene due to internal stop codon
+TRAV12*bcf2 marked as pseudogene due to missing/incorrect start codon
+Discarding BK068537	501226	501650	TRAV8-1*01	440	+ due to incomplete 5' end
+Discarding BK068537	506376	506729	TRAV8-2*01	148	+ due to incomplete 5' end
+Discarding BK068537	516830	517173	TRAV9-6*01	180	+ due to incomplete 5' end
+Discarding BK068537	558888	559376	TRAV8-2*01	431	+ due to splice donor in alignment gap in exon 1
+TRAV22*d528 marked as ORF due to noncanonical splice donor GA
+Discarding BK068537	569956	570330	TRAV23*01	432	+ due to incomplete 5' end
+TRAV43-1*a402 marked as ORF due to no RSS; noncanonical splice donor TT
+Discarding BK068537	593235	593549	TRAV35*01	137	+ due to incomplete 5' end
+Discarding BK068537	606632	606954	TRAV35*01	142	+ due to incomplete 5' end
+Discarding BK068537	624225	624490	TRAV34*01	139	+ due to incomplete 5' end
+TRAV33*8e96 marked as ORF due to noncanonical splice acceptor AT
+Discarding BK068537	684536	684808	TRAV29*01	106	+ due to incomplete 5' end
+Discarding BK068537	71835	72155	TRAV19*01	182	+ due to incomplete 5' end
+Discarding BK068537	726535	726629	TRAV40*01	131	+ due to splice acceptor in alignment gap in exon 2
+Discarding BK068537	726690	727020	TRAV40*01	410	+ due to incomplete 5' end
+Discarding BK068537	730120	730447	TRAV28*01	125	+ due to incomplete 5' end
+TRAV43-2*5e52 marked as pseudogene due to missing/incorrect start codon
+Discarding BK068537	90806	91067	TRAV29*01	107	+ due to incomplete 5' end
+Discarding BK068537	9997	10287	TRAV8-1*01	122	+ due to splice donor in alignment gap in exon 1
+Warning: bedtools merge failed for TRAC. Maybe no blast hits were found on this contig?
+Skipping...
+
+
+Warning: bedtools merge failed for TRDC. Maybe no blast hits were found on this contig?
+Skipping...
+
+
+Wed Mar 12 01:16:13 2025 -- Program finished successfully

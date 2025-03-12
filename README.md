@@ -23,29 +23,26 @@ Install required python packages:
 
 		pip install -r aligator/requirements.txt
 
+Initialize the DnaGrep submodule:
+
+	       git submodule init
+	       git submodule update
+
 Set enviromental variable:
 
 		export ALIGATOR_PATH=$(pwd)/aligator
 
 Quick help:
 
-		`aligator help`
+		aligator help
 
 
-## Vignette annotating MF989451 from Ramesh et al Frontiers Immunology 2017:
-Data is in `aligator/sample_data`.
+## Example commands and validation results:
 
-First, get reference genome from IMGT:
+Run all validations:
 
-		#Download BK063715 fasta file from https://imgt.org/ligmdb/view.action?format=FASTA&id=BK063715
-		#Then create bedfile with reference annotations
-		aligator extract https://imgt.org/ligmdb/view.action?id=BK063715 BK063715
+    	bash sample_data/runTests.sh
 
-Find possible RSS motifs in the target contig. For MF989451, the output should look the same as `sample_data/MF989451.rss12_pred.bed` and `sample_data/MF989451.rss23_pred.bed`:
-   
-		aligator predict $ALIGATOR_PATH/sample_data/MF989451.fa MF989451
+Compare results to a reference:
 
-Finally, annotate the target contig. For MF989451, the actual annotations provided by Ramesh et al are included as `sample_data/MF989451.ground_truth.bed`:
-   
-		aligator annotate $ALIGATOR_PATH/sample_data/MF989451.fa MF989451.RSS12.bed MF989451.RSS23.bed IGH BK063715.fasta BK063715.bed
-
+		Rscript sample_data/gatorADE <reference annotations> <aligator output>
