@@ -1,9 +1,9 @@
 
-Wed Mar 12 01:17:40 2025 -- ALIGaToR  run with command:
+Thu Apr 24 15:42:03 2025 -- ALIGaToR  run with command:
 	../../../aligator extract BK068295 ferret_TRB_geneRef_noPseudo.bed
-Wed Mar 12 01:17:48 2025 -- Program finished successfully
+Thu Apr 24 15:42:13 2025 -- Program finished successfully
 
-Wed Mar 12 01:17:49 2025 -- ALIGaToR  run with command:
+Thu Apr 24 15:42:13 2025 -- ALIGaToR  run with command:
 	../../../aligator annotate ../ferret_TRB.fasta ../ferret_TRB.RSS12.bed ../ferret_TRB.RSS23.bed TRB ../ferret_TRB.fasta ferret_TRB_geneRef_noPseudo.bed --outgff self_predictedGenes.gff --outfasta self_predictedGenes.fasta
 Discarding BK068295	114274	114649	TRBV12-2*01	148	+ due to incomplete 5' end
 Discarding BK068295	144054	144154	TRBV6*02	150	+ due to incomplete 5' end
@@ -23,4 +23,4 @@ TRBJ1-2*01 marked as ORF due to no RSS
 TRBJ1-5*01 marked as ORF due to no RSS
 TRBJ2-1*01 marked as ORF due to no RSS
 TRBJ2-5*01 marked as ORF due to no RSS
-Wed Mar 12 01:17:58 2025 -- Program finished successfully
+Thu Apr 24 15:42:22 2025 -- Program finished successfully

@@ -1,17 +1,17 @@
 
-Wed Mar 12 01:17:05 2025 -- ALIGaToR  run with command:
+Thu Apr 24 15:41:22 2025 -- ALIGaToR  run with command:
 	../../aligator extract BK068295 ferret_TRB_geneRef_withPseudo.bed --fasta ferret_TRB.fasta --pseudo
-Wed Mar 12 01:17:17 2025 -- Program finished successfully
+Thu Apr 24 15:41:36 2025 -- Program finished successfully
 
-Wed Mar 12 01:17:17 2025 -- ALIGaToR  run with command:
+Thu Apr 24 15:41:37 2025 -- ALIGaToR  run with command:
 	../../aligator extract BK065025 dog_TRB.bed --fasta dog_TRB.fasta
-Wed Mar 12 01:17:29 2025 -- Program finished successfully
+Thu Apr 24 15:41:53 2025 -- Program finished successfully
 
-Wed Mar 12 01:17:30 2025 -- ALIGaToR  run with command:
+Thu Apr 24 15:41:53 2025 -- ALIGaToR  run with command:
 	../../aligator predict ferret_TRB.fasta ferret_TRB --species MM
-Wed Mar 12 01:17:31 2025 -- Program finished successfully
+Thu Apr 24 15:41:54 2025 -- Program finished successfully
 
-Wed Mar 12 01:17:31 2025 -- ALIGaToR  run with command:
+Thu Apr 24 15:41:54 2025 -- ALIGaToR  run with command:
 	../../aligator annotate ferret_TRB.fasta ferret_TRB.RSS12.bed ferret_TRB.RSS23.bed TRB dog_TRB.fasta dog_TRB.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
 Discarding BK068295	114275	114649	TRBV12-2*01	155	+ due to incomplete 5' end
 Discarding BK068295	145027	145373	TRBV26*01	106	+ due to incomplete 5' end
@@ -35,8 +35,5 @@ TRBV28*a794 marked as pseudogene due to internal stop codon
 Discarding BK068295	283772	284033	TRBV29*01	221	+ due to splice acceptor in alignment gap in exon 2
 Discarding BK068295	284069	284435	TRBV29*01	410	+ due to incomplete 5' end
 TRBV30*d95e marked as pseudogene due to internal stop codon
-Warning: bedtools merge failed for TRBC. Maybe no blast hits were found on this contig?
-Skipping...
-
-
-Wed Mar 12 01:17:39 2025 -- Program finished successfully
+Discarding BK068295	308199	309422	TRBC1*01	464	+ due to splice acceptor in alignment gap in exon 4
+Thu Apr 24 15:42:01 2025 -- Program finished successfully
