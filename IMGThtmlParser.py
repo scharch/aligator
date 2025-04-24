@@ -48,6 +48,8 @@ def main():
 	inVgene = False
 	inJgene = False
 	inCgene = False
+	printedC = False
+	CUnitStartEnd = ""
 	geneName = ""
 	start = ""
 	end = ""
@@ -152,8 +154,26 @@ def main():
 			#Check for C genes, and their CDS, keep track of gene names
 			#filter out pseudo C genes
 			if inGeneCunit and geneType == "C":
-				if geneName in pseudoList or row[1] == "3'UTR":
+				if geneName in pseudoList:
 					inGeneCunit = False
+					if arguments['--pseudo']:
+						if re.match("complement",splitStartEnd):
+							strand = "-"
+							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
+						start, end = map(int, splitStartEnd.split(".."))
+						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " pseudogene", "0", strand])
+
+				elif row[1] == "3'UTR":
+					inGeneCunit = False
+					if not printedC:
+						if re.match("complement",CUnitStartEnd):
+							strand = "-"
+							CUnitStartEnd = re.sub(r"complement|\(|\)", "", CUnitStartEnd)
+						CUnitStartEnd = re.sub( "[<>]", "", CUnitStartEnd )
+						start, end = map(int, CUnitStartEnd.split(".."))
+						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+
 				elif row[3] == "IMGT_allele":
 					geneName = row[5].replace("IGH","IGHC")
 					if geneName in geneNameList:
@@ -166,6 +186,7 @@ def main():
 						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
 						start, end = map(int, splitStartEnd.split(".."))
 						rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+						printedC = True
 					#fetch C-gene CDS
 				if re.match("CL",row[1]) or re.match("CH|H",row[1]) or re.match("M[12]|M(?!ISC)",row[1]) or re.match(r"^EX([1234])$", row[1]):
 					splitStartEnd = row[5]
@@ -223,7 +244,9 @@ def main():
 				geneType = "C-GENE"
 			if row[1] == "C-GENE-UNIT":
 				inGeneCunit = True
+				printedC = False
 				splitStartEnd = row[5]
+				CUnitStartEnd = row[5] #kludge
 				geneType = "C"
 
 		#don't process additional `div`s after break
