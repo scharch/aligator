@@ -241,11 +241,11 @@ BK068537	ALIGaToR	exon	452239	452290	.	+	.	Parent=TRAV43-13*6ece;exontype=L-part
 BK068537	ALIGaToR	exon	452485	452767	.	+	.	Parent=TRAV43-13*6ece;exontype=V;locus=TRA;functionality=ORF
 BK068537	ALIGaToR	V_region	452493	452767	.	+	0	Parent=TRAV43-13*6ece;locus=TRA;functionality=ORF
 BK068537	ALIGaToR	V_gene_recombination_feature	452768	452806	-42.1762035936539	+	.	Parent=TRAV43-13*6ece;locus=TRA;functionality=ORF
-BK068537	ALIGaToR	TR_V_pseudogene	458273	458807	.	+	.	ID=TRAV13-11*a7c6;locus=TRA;functionality=P
-BK068537	ALIGaToR	pseudogenic_exon	458273	458324	.	+	.	Parent=TRAV13-11*a7c6;exontype=L-part1;locus=TRA;functionality=P
-BK068537	ALIGaToR	pseudogenic_exon	458476	458768	.	+	.	Parent=TRAV13-11*a7c6;exontype=V;locus=TRA;functionality=P
-BK068537	ALIGaToR	V_region	458487	458768	.	+	0	Parent=TRAV13-11*a7c6;locus=TRA;functionality=P
-BK068537	ALIGaToR	V_gene_recombination_feature	458769	458807	-42.6669514855034	+	.	Parent=TRAV13-11*a7c6;locus=TRA;functionality=P
+BK068537	ALIGaToR	TR_V_pseudogene	458273	458807	.	+	.	ID=TRAV13-13*a7c6;locus=TRA;functionality=P
+BK068537	ALIGaToR	pseudogenic_exon	458273	458324	.	+	.	Parent=TRAV13-13*a7c6;exontype=L-part1;locus=TRA;functionality=P
+BK068537	ALIGaToR	pseudogenic_exon	458476	458768	.	+	.	Parent=TRAV13-13*a7c6;exontype=V;locus=TRA;functionality=P
+BK068537	ALIGaToR	V_region	458487	458768	.	+	0	Parent=TRAV13-13*a7c6;locus=TRA;functionality=P
+BK068537	ALIGaToR	V_gene_recombination_feature	458769	458807	-42.6669514855034	+	.	Parent=TRAV13-13*a7c6;locus=TRA;functionality=P
 BK068537	ALIGaToR	TR_V_gene	465485	465985	.	+	.	ID=TRAV9-18*e47e;locus=TRA;functionality=F
 BK068537	ALIGaToR	exon	465485	465530	.	+	.	Parent=TRAV9-18*e47e;exontype=L-part1;locus=TRA;functionality=F
 BK068537	ALIGaToR	exon	465655	465946	.	+	.	Parent=TRAV9-18*e47e;exontype=V;locus=TRA;functionality=F

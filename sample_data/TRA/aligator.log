@@ -1,17 +1,17 @@
 
-Thu Apr 24 15:39:25 2025 -- ALIGaToR  run with command:
+Thu Apr 24 20:46:48 2025 -- ALIGaToR  run with command:
 	../../aligator extract BK068537 ferret_TRA_geneRef_withPseudo.bed --fasta ferret_TRA.fasta --pseudo
-Thu Apr 24 15:39:47 2025 -- Program finished successfully
+Thu Apr 24 20:47:07 2025 -- Program finished successfully
 
-Thu Apr 24 15:39:48 2025 -- ALIGaToR  run with command:
+Thu Apr 24 20:47:07 2025 -- ALIGaToR  run with command:
 	../../aligator extract BK065026 dog_TRA.bed --fasta dog_TRA.fasta
-Thu Apr 24 15:40:06 2025 -- Program finished successfully
+Thu Apr 24 20:47:23 2025 -- Program finished successfully
 
-Thu Apr 24 15:40:07 2025 -- ALIGaToR  run with command:
+Thu Apr 24 20:47:24 2025 -- ALIGaToR  run with command:
 	../../aligator predict ferret_TRA.fasta ferret_TRA --species MM
-Thu Apr 24 15:40:08 2025 -- Program finished successfully
+Thu Apr 24 20:47:26 2025 -- Program finished successfully
 
-Thu Apr 24 15:40:09 2025 -- ALIGaToR  run with command:
+Thu Apr 24 20:47:26 2025 -- ALIGaToR  run with command:
 	../../aligator annotate ferret_TRA.fasta ferret_TRA.RSS12.bed ferret_TRA.RSS23.bed TRA dog_TRA.fasta dog_TRA.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
 Adjusting TRAV19*01 V-Region stop position from 530735 to 530740 to account for RSS detection
 Adjusting TRAV34*01 V-Region stop position from 645531 to 645533 to account for RSS detection
@@ -21,7 +21,7 @@ Discarding BK068537	152295	152574	TRAV29*01	126	+ due to incomplete 5' end
 Discarding BK068537	161351	161664	TRAV19*01	171	+ due to incomplete 5' end
 TRAV43-2*230f marked as pseudogene due to internal stop codon
 Discarding BK068537	181521	181877	TRAV24*01	96.7	+ due to incomplete 5' end
-TRAV43-1*9869 marked as ORF due to noncanonical splice donor TT
+TRAV43-2*9869 marked as ORF due to noncanonical splice donor TT
 Discarding BK068537	214858	215027	TRAV29*01	104	+ due to incomplete 5' end
 Discarding BK068537	22180	22545	TRAV8-1*01	426	+ due to incomplete 5' end
 TRAV9-7*d345 marked as ORF due to missing invariant residue
@@ -56,7 +56,7 @@ Discarding BK068537	516830	517173	TRAV9-6*01	180	+ due to incomplete 5' end
 Discarding BK068537	558888	559376	TRAV8-2*01	431	+ due to splice donor in alignment gap in exon 1
 TRAV22*d528 marked as ORF due to noncanonical splice donor GA
 Discarding BK068537	569956	570330	TRAV23*01	432	+ due to incomplete 5' end
-TRAV43-1*a402 marked as ORF due to no RSS; noncanonical splice donor TT
+TRAV43-2*a402 marked as ORF due to no RSS; noncanonical splice donor TT
 Discarding BK068537	593235	593549	TRAV35*01	137	+ due to incomplete 5' end
 Discarding BK068537	606632	606954	TRAV35*01	142	+ due to incomplete 5' end
 Discarding BK068537	624225	624490	TRAV34*01	139	+ due to incomplete 5' end
@@ -69,5 +69,20 @@ Discarding BK068537	730120	730447	TRAV28*01	125	+ due to incomplete 5' end
 TRAV43-2*5e52 marked as pseudogene due to missing/incorrect start codon
 Discarding BK068537	90806	91067	TRAV29*01	107	+ due to incomplete 5' end
 Discarding BK068537	9997	10287	TRAV8-1*01	122	+ due to splice donor in alignment gap in exon 1
+Adjusting TRAJ32*01 J start position from 908268 to 908266 to account for RSS detection
+Adjusting TRAJ4*01 J start position from 941609 to 941611 to account for RSS detection
+Discarding BK068537	877245	877321	TRAJ60*01	74.5	+ due to incomplete 3' end
+Discarding BK068537	880428	880513	TRAJ56*01	71.3	+ due to incomplete 5' end
+TRAJ44*f38b marked as pseudogene due to internal stop codon
+TRAJ38*5ee6 marked as ORF due to missing invariant residue
+Discarding BK068537	905817	905908	TRAJ35*01	66.6	+ due to incomplete 5' end
+TRAJ33*346a marked as ORF due to missing invariant residue
+TRAJ24*bb09 marked as ORF due to no RSS
+TRAJ20*10bd marked as pseudogene due to internal stop codon
+TRAJ19*698e marked as ORF due to no RSS
+TRAJ11*d560 marked as ORF due to missing invariant residue
+TRAJ9*c2a2 marked as ORF due to missing invariant residue
+Discarding BK068537	942713	942791	TRAJ3*01	61.8	+ due to incomplete 3' end
 Discarding BK068537	947399	949765	TRAC*01	1578	+ due to splice acceptor in alignment gap in exon 3
-Thu Apr 24 15:40:28 2025 -- Program finished successfully
+Discarding BK068537	858138	858208	TRDJ3*01	74.5	+ due to incomplete 3' end
+Thu Apr 24 20:47:57 2025 -- Program finished successfully

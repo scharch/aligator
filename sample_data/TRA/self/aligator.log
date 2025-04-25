@@ -1,9 +1,9 @@
 
-Thu Apr 24 15:40:32 2025 -- ALIGaToR  run with command:
+Thu Apr 24 20:48:02 2025 -- ALIGaToR  run with command:
 	../../../aligator extract BK068537 ferret_TRA_geneRef_noPseudo.bed
-Thu Apr 24 15:40:46 2025 -- Program finished successfully
+Thu Apr 24 20:48:15 2025 -- Program finished successfully
 
-Thu Apr 24 15:40:47 2025 -- ALIGaToR  run with command:
+Thu Apr 24 20:48:16 2025 -- ALIGaToR  run with command:
 	../../../aligator annotate ../ferret_TRA.fasta ../ferret_TRA.RSS12.bed ../ferret_TRA.RSS23.bed TRA ../ferret_TRA.fasta ferret_TRA_geneRef_noPseudo.bed --outgff self_predictedGenes.gff --outfasta self_predictedGenes.fasta
 Adjusting TRAV43-10*01 V-Region stop position from 300468 to 300466 to account for RSS detection
 Discarding BK068537	108325	108480	TRAV41*01	133	+ due to incomplete 5' end
@@ -72,7 +72,7 @@ TRAV9-19*7a89 marked as pseudogene due to internal stop codon
 Discarding BK068537	445874	446075	TRAV6*01	104	- due to incomplete 5' end
 Discarding BK068537	445950	446072	TRAV41*01	109	+ due to incomplete 5' end
 TRAV43-13*6ece marked as ORF due to missing invariant residue
-TRAV13-11*a7c6 marked as pseudogene due to internal stop codon
+TRAV13-13*a7c6 marked as pseudogene due to internal stop codon
 TRAV9-19*a6b8 marked as ORF due to noncanonical splice acceptor GG
 Discarding BK068537	499037	499292	TRAV5*01	118	+ due to incomplete 5' end
 Discarding BK068537	504360	504481	TRAV41*01	117	+ due to incomplete 5' end
@@ -157,4 +157,4 @@ TRAJ11*01 marked as ORF due to missing invariant residue
 TRAJ9*01 marked as ORF due to missing invariant residue
 TRDD1*01 marked as ORF due to no 3' RSS
 TRDD2*01 marked as ORF due to no 3' RSS
-Thu Apr 24 15:41:20 2025 -- Program finished successfully
+Thu Apr 24 20:48:49 2025 -- Program finished successfully
