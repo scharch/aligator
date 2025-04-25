@@ -95,7 +95,7 @@ def main():
 						geneNameList.append(geneName)
 						if geneName in pseudoList and not arguments['--pseudo']:
 							inGeneVDJ = False
-						elif geneType!="V-GENE": #only do this for L-V-GENE-UNIT, not V-GENE
+						elif geneType not in ["V-GENE","J-GENE"]: #only do this for L-V-GENE-UNIT/J-GENE-UNIT, not V-GENE/J-GENE
 							if re.match("complement",splitStartEnd):
 								strand = "-"
 								splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
@@ -202,7 +202,7 @@ def main():
 
 			if re.match("(?:L-)?([VDJ])-GENE(-UNIT)?", row[1]):
 
-				if row[1]=="D-GENE" or row[1]=="J-GENE":
+				if row[1]=="D-GENE":
 					continue
 
 				splitStartEnd = row[5]
@@ -227,6 +227,18 @@ def main():
 					geneType="D"
 				elif row[1]=="J-GENE-UNIT":
 					geneType="J"
+					if inGeneVDJ: #already have the gene name from J-GENE
+						if re.match("complement",splitStartEnd):
+							strand = "-"
+							splitStartEnd = re.sub(r"complement|\(|\)", "", splitStartEnd)
+						splitStartEnd = re.sub( "[<>]", "", splitStartEnd )
+						start, end = map(int, splitStartEnd.split(".."))
+						if geneName in ORFList:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " ORF gene", "0", strand])
+						elif geneName not in pseudoList:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " gene", "0", strand])
+						elif arguments['--pseudo']:
+							rows.append([arguments['IMGTREFNAME'], str(start - 1), str(end), geneName + " pseudogene", "0", strand])
 
 				inGeneVDJ = True
 			if re.match("V-GENE",row[1]):
