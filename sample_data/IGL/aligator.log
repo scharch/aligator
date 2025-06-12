@@ -1,13 +1,13 @@
 
-Wed Mar 12 01:14:31 2025 -- ALIGaToR  run with command:
+Thu Jun 12 15:02:00 2025 -- ALIGaToR  run with command:
 	../../aligator extract BK063717 BK063717.bed --fasta BK063717.fasta
-Wed Mar 12 01:14:52 2025 -- Program finished successfully
+Thu Jun 12 15:02:17 2025 -- Program finished successfully
 
-Wed Mar 12 01:14:52 2025 -- ALIGaToR  run with command:
+Thu Jun 12 15:02:18 2025 -- ALIGaToR  run with command:
 	../../aligator predict MF989453.fa MF989453
-Wed Mar 12 01:14:54 2025 -- Program finished successfully
+Thu Jun 12 15:02:20 2025 -- Program finished successfully
 
-Wed Mar 12 01:14:54 2025 -- ALIGaToR  run with command:
+Thu Jun 12 15:02:20 2025 -- ALIGaToR  run with command:
 	../../aligator annotate MF989453.fa MF989453.RSS12.bed MF989453.RSS23.bed IGL BK063717.fasta BK063717.bed --outgff predictedGenes.gff --outfasta predictedGenes.fasta
 Adjusting IGLV3-18*01 V-Region start position from 392215 to 392195 to account for RSS detection
 IGLV3-2*e8fd marked as pseudogene due to internal stop codon
@@ -25,7 +25,7 @@ Discarding MF989453	375475	375807	IGLV3-2*01	163	- due to incomplete 5' end
 IGLV3-22*bdf9 marked as pseudogene due to missing/incorrect start codon
 IGLV4-17*01 marked as pseudogene due to internal stop codon
 IGLV3-18*f99b marked as ORF due to missing invariant residue
-IGLV3-25*dcec marked as pseudogene due to internal stop codon
+IGLV3-40*dcec marked as pseudogene due to internal stop codon
 Discarding MF989453	415755	416090	IGLV3-2*01	187	- due to incomplete 5' end
 Discarding MF989453	434076	434283	IGLV2-38*01	225	- due to incomplete 5' end
 IGLV2-26*3019 marked as ORF due to noncanonical splice donor GC
@@ -49,34 +49,9 @@ Discarding MF989453	776809	777279	IGLV7-88*01	588	- due to incomplete 5' end
 Discarding MF989453	798279	798562	IGLV1-66*01	115	- due to incomplete 5' end
 IGLJ5*01 marked as ORF due to no RSS
 IGLJ4*01 marked as ORF due to no RSS; noncanonical J splice donor
-Warning: 'MF989453	175430	175750	IGLC1*01	467	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	175430	175750	IGLC2*02	505	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	175430	175750	IGLC2A*01	508	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	175430	175750	IGLC3*01	508	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	175430	175750	IGLC6*02	467	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	175430	175750	IGLC7*01	451	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	181049	181369	IGLC1*01	467	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	181049	181369	IGLC2*02	505	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	181049	181369	IGLC2A*01	508	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	181049	181369	IGLC3*01	508	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	181049	181369	IGLC6*02	467	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-Warning: 'MF989453	181049	181369	IGLC7*01	451	-' appears to be a subset of several sequences: IGLC2A*01,IGLC3*01.
-    Arbitrarily using IGLC2A*01 for naming purposes...
-IGLC6*88d8_d0 marked as pseudogene due to internal stop codon
-IGLC6*88d8_d1 marked as pseudogene due to internal stop codon
-IGLC6*88d8_d2 marked as pseudogene due to internal stop codon
-IGLC6*88d8_d3 marked as pseudogene due to internal stop codon
-IGLC6*88d8_d4 marked as pseudogene due to internal stop codon
-IGLC6*88d8_d5 marked as pseudogene due to internal stop codon
-Wed Mar 12 01:15:15 2025 -- Program finished successfully
+Warning: 'MF989453	175430	175750	IGLC3*01	508	-' appears to be a subset of several sequences: IGLC3*01,IGLC2A*01.
+    Arbitrarily using IGLC3*01 for naming purposes...
+Warning: 'MF989453	181049	181369	IGLC3*01	508	-' appears to be a subset of several sequences: IGLC3*01,IGLC2A*01.
+    Arbitrarily using IGLC3*01 for naming purposes...
+IGLC6*88d8 marked as pseudogene due to internal stop codon
+Thu Jun 12 15:02:38 2025 -- Program finished successfully
