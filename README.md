@@ -10,7 +10,7 @@ A pipeline for annotating genomic contigs from the IG and TR loci. The pipeline 
 
 ## Dependencies/Prerequisites 
 - Python 3.6 or greater
-- Muscle
+- Muscle v3.8 (currently, muscle5 will cause an error)
 - Blast+
 - BedTools
 
