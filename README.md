@@ -15,22 +15,23 @@ A pipeline for annotating genomic contigs from the IG and TR loci. The pipeline 
 - BedTools
 
 ## Getting Started
-Clone the aligator repository:
+After installing the above dependencies, clone the aligator repository:
 
 		git clone https://github.com/scharch/aligator.git
 
 Install required python packages:
 
-		pip install -r aligator/requirements.txt
+		cd aligator
+		pip install -r requirements.txt
 
 Initialize the DnaGrep submodule:
 
-	       git submodule init
-	       git submodule update
+		git submodule init
+		git submodule update
 
 Set enviromental variable:
 
-		export ALIGATOR_PATH=$(pwd)/aligator
+		export ALIGATOR_PATH=$(pwd)
 
 Quick help:
 
@@ -39,10 +40,19 @@ Quick help:
 
 ## Example commands and validation results:
 
-Run all validations:
+Validate install:
 
-    	bash sample_data/runTests.sh
+		bash validateInstall.sh
 
-Compare results to a reference:
+Re-run analysis from the paper (requires additional dependencies, see script header):
+
+		bash sample_data/runPaperAnalysis.sh
+
+Compare results to a reference (requires R with the packages bedtoolsr and ggalluvial):
 
 		Rscript sample_data/gatorADE <reference annotations> <aligator output>
+
+
+## Citing:
+If you use ALIGaToR, please cite:
+Schramm, Olubo, and Douek, "ALIGaToR: A tool for the automated annotation of immunoglobulin and T cell receptor genomic loci" [preprint](https://www.biorxiv.org/content/10.1101/2025.05.02.651960v1)
