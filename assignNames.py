@@ -50,7 +50,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 	if targets.file_type == "gff":
 		#remove pseudos
 		target_names = [ t.name for t in targets.filter( lambda x: x['functionality']=="F" ) ]
-	gene_ids     = set( re.match( f"{locus}{gene}\S+", n).group() for n in target_names if re.match( f"{locus}{gene}\S+", n) )
+	gene_ids     = set( re.match( fr"{locus}{gene}\S+", n).group() for n in target_names if re.match( fr"{locus}{gene}\S+", n) )
 
 
 	#parse DB of coding alleles, if present
@@ -63,7 +63,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 			for seq in SeqIO.parse( dbhandle, 'fasta' ):
 
 				#someone might have downloaded an allele database directly from IMGT, so parse accordingly
-				imgtID = re.search( f"(IGH|IGK|IGL|TRA|TRB|TRD)([VDJCMAGE])[^\s|]+", seq.description)
+				imgtID = re.search( fr"(IGH|IGK|IGL|TRA|TRB|TRD)([VDJCMAGE])[^\s|]+", seq.description)
 				if not imgtID:
 					print( f"Cannot parse gene ID {seq.description}, skipping...", file=sys.stderr)
 					continue
@@ -77,7 +77,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 
 				#IGH and TR* C genes have multiple exons that might need to be put together manually
 				if gene == "C" and locus not in ['IGK','IGL']:
-					exonID = [ e for e in cExonOrder if re.search(f"(?:\\b|(?<=_)){e}(?=\\b|_)",seq.description) ]
+					exonID = [ e for e in cExonOrder if re.search(fr"(?:\\b|(?<=_)){e}(?=\\b|_)",seq.description) ]
 
 					#stupid kludge to account for three types of exons with an internal '\b'
 					if "H-CH2" in exonID:
@@ -91,7 +91,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 						exonID.remove("CHS")
 
 					if len(exonID) == 1:
-						alleleID = re.sub( f"[-_]{exonID[0]}", "", imgtID.group() )
+						alleleID = re.sub( fr"[-_]{exonID[0]}", "", imgtID.group() )
 						cSeqs[ alleleID ][ exonID[0] ] = str( seq.seq )
 					else:
 						#multiple or no matches - just assume it is full-length and move on
@@ -181,7 +181,7 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 
 				#parse the gene name of the hit
 				#this regex probably still isn't right...
-				geneParse = re.match( f"(({locus}{gene}?[DMAGE]?\w*)-?[^*]*)", row[0] )
+				geneParse = re.match( fr"(({locus}{gene}?[DMAGE]?\w*)-?[^*]*)", row[0] )
 
 				if not geneParse:
 					#it's probably not great that we have gotten this far without checking this assumption...

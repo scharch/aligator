@@ -100,7 +100,7 @@ def checkSplice( hits, bedfile, targetSeq, contigs, gene, locus, blast_exec, cod
 		stringhit =	"\t".join(h[0:6])
 
 		#check if at least one of the hits has annotated exons
-		names = re.sub("[:\s].*$","",h.name).split(",")
+		names = re.sub(r"[:\s].*$","",h.name).split(",")
 		exons = targetBed.filter(lambda x: names[0] in x.name and ("exon" in x.name or "V-Region" in x.name)).saveas()
 		fullGene = targetBed.filter(lambda x: names[0] in x.name and "gene" in x.name).saveas()
 		if targetBed.file_type == "gff":

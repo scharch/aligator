@@ -2,7 +2,6 @@
 import os, sys, re, atexit, subprocess, time
 from io import StringIO
 from Bio.Data import CodonTable
-from Bio.Align.Applications import MuscleCommandline
 from Bio import SeqIO
 from checkSplice import checkSplice
 from checkFunctionality import checkFunctionality
@@ -48,7 +47,7 @@ def logCmdLine( command ):
     logFile = "aligator.log"
 
     for idx,arg in enumerate(command):
-        if re.search("(\s|\*)", arg):
+        if re.search(r"(\s|\*)", arg):
             command[idx] = "'"+arg+"'"
 
     p = subprocess.Popen(['git', '--git-dir', os.path.dirname(command[0])+"/../.git",
@@ -129,12 +128,12 @@ def quickAlign( refseq, testseq, gapopen=None ):
 	handle.write( ">ref\n%s\n>test\n%s\n"%(refseq,testseq) )
 	data = handle.getvalue()
 
-	muscle_cline = MuscleCommandline(cmd="muscle", quiet=True)
-	if gapopen is not None: muscle_cline.gapopen  = gapopen
+	muscle_cline = [ "muscle", '-quiet' ]
+	if gapopen is not None: muscle_cline += [ '-gapopen', gapopen ]
 
-	stdout, stderr = muscle_cline(stdin=data)
+	muscle_result = subprocess.run(muscle_cline, capture_output=True, text=True, input=data.encode())
 
 	aligned = dict()
-	for p in SeqIO.parse(StringIO(stdout), "fasta"):
+	for p in SeqIO.parse(StringIO(muscle_result.stdout), "fasta"):
 		aligned[ p.id ] = str(p.seq)
 	return aligned
