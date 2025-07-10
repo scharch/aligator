@@ -109,7 +109,7 @@ def checkFunctionality( exonDict, contigs, directory, locus, gene, status):
 		elif gene == "J":
 			with open( f"{directory}/{locus}{gene}.fa", 'r' ) as refHandle:
 				refSeq = SeqIO.read(refHandle, 'fasta')
-			align = quickAlign( refSeq, SeqRecord(splicedSeq), gapopen=-2000.0 )
+			align = quickAlign( refSeq, SeqRecord(splicedSeq), gapopen="-2000.0" )
 
 			#kludge if J is longer than our reference
 			while align['ref'][0]=='-':

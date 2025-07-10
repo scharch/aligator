@@ -131,7 +131,7 @@ def quickAlign( refseq, testseq, gapopen=None ):
 	muscle_cline = [ "muscle", '-quiet' ]
 	if gapopen is not None: muscle_cline += [ '-gapopen', gapopen ]
 
-	muscle_result = subprocess.run(muscle_cline, capture_output=True, text=True, input=data.encode())
+	muscle_result = subprocess.run( muscle_cline, capture_output=True, text=True, input=data )
 
 	aligned = dict()
 	for p in SeqIO.parse(StringIO(muscle_result.stdout), "fasta"):
