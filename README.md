@@ -38,7 +38,7 @@ Quick help:
 		aligator help
 
 Alternatively, a Singularity container for ALIGaToR is available from Zenodo
-with the doi **10.5281/zenodo.16004645**
+at https://doi.org/10.5281/zenodo.16004645
 
 		singularity exec aligator.sif aligator <extract|predict|annotate> ...
 
