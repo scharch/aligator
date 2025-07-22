@@ -26,7 +26,7 @@ All rights reserved.
 from pybedtools import BedTool, featurefuncs
 from Bio import SeqIO
 from Bio.Seq import Seq
-import re, sys, csv
+import re, sys, csv, os
 from collections import defaultdict
 from hashlib import sha1
 from aligator.blast2bed import blastOnly
@@ -103,8 +103,9 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 		for allele in cSeqs:
 			seqDB[ allele ] = "".join([ cSeqs[allele].get(e,"") for e in cExonOrder ]).upper()
 
-	else:
-		#no coding alleles provided, extract sequences from reference genome instead
+	if len(seqDB)==0:
+		# no coding alleles provided or none in the db matching locus and gene
+		#     extract sequences from reference genome instead
 		for g in gene_ids:
 
 			#some kludge to save them since the BedTool generator object produced by `filter` is weird
@@ -157,6 +158,8 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 			seqHash = sha1( splicedSeq.encode() ).hexdigest()[0:4]
 
 			#write sequences to disk and blast for closest match
+			if os.path.exists("annoTemp/nameResult.txt"):
+				os.remove("annoTemp/nameResult.txt")
 			fastaString = "\n".join( [ f">{k}\n{v}" for k,v in seqDB.items() ] )
 			with open( "annoTemp/nameDB.fa", 'w' ) as fh:
 				fh.write( fastaString )
@@ -167,6 +170,8 @@ def assignNames( toName, contigs, targets, genomeFile, locus, gene, blast="blast
 							evalue='10', minPctID='75', maxTarget='1', maxHSP='1' )
 
 			#read in blast hit
+			if not os.path.exists("annoTemp/nameResult.txt"):
+				sys.exit( f"blast failed trying to name '{stringhit} using {seqDB.keys()}" )
 			with open("annoTemp/nameResult.txt", 'r') as handle:
 
 				#should only be one line based on parameters - only need the best match
