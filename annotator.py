@@ -128,6 +128,10 @@ def main():
 		if gene == "D" and not arguments['LOCUS'] in ['IGH','TRB','TRD']:
 			continue
 
+		#set up some dictionaries
+		selectedRSS = dict()
+		statusDict = dict()
+
 		# 1a. Generate a search database from target genome
 		targets     = BedTool( arguments['TARGETBED'] )
 		target2  = targets.filter( lambda x: f"{arguments['LOCUS']}{gene}" in x.name and "gene" in x.name ).saveas()
