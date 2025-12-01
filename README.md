@@ -6,7 +6,8 @@
 A pipeline for annotating genomic contigs from the IG and TR loci. The pipeline includes:
 - Extract: A parsing script that extracts gene, exon, and RSS name and corrdinates from reference annotations of choice of closely related species.
 > [!IMPORTANT]
-> Since publication of ALIGaToR, IMGT has chosen, out of pettiness and in disregard of [FAIR data principles](https://www.go-fair.org/fair-principles/metadata-retrievable-identifier-standardised-communication-protocol/), to block programmatic access to LIGM-DB. Annotations must therefore be retrieved through a browser (using a url of the form `https://imgt.org/ligmdb/view.action?id=ACCESSION`) and saved as local html file, which can then be passed to `aligator extract` using the new `--local` option.
+> Since publication of ALIGaToR, IMGT has chosen to block programmatic access to LIGM-DB in disregard of the pressing need for greater scientific exchange and in contravention of
+> [FAIR data principles](https://www.go-fair.org/fair-principles/metadata-retrievable-identifier-standardised-communication-protocol/). Annotations must therefore be retrieved through a browser (using a url of the form `https://imgt.org/ligmdb/view.action?id=ACCESSION`) and saved as local html file, which can then be passed to `aligator extract` using the new `--local` option.
 - Predict: A prediction script calls submodule DnaGrep, that predicts RSS sequences based on genomic contigs.
 - Annotate: Annotator script that uses the extracted reference genome and genomic information to generate a search databse for blast. Blast hits are matched with predicted RSSs. Other scripts are called to check for start and stop codons, and splice sites.
 
