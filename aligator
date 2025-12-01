@@ -16,14 +16,14 @@ Usage:
 
 Commands:
 
-	extract    Extract reference annotations from an IMGT webpage 
+	extract    Extract reference annotations from a (downloaded) IMGT webpage 
 	predict    Predict RSS in genomic sequences
 	annotate   Use reference annotations and predicted RSS to annotate novel genomic sequences
 
 Created by Chaim A Schramm and Simone Olubo on 2024-04-15.
 Updates for predictRSS by CASchramm on 2024-11-14.
 
-Copyright (c) 2024 Vaccine Research Center, National Institutes of Health, USA.
+Copyright (c) 2024-2025 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
 
 """

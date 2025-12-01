@@ -6,13 +6,15 @@ aligator extract
 This script parses reference annotations from the IMGT website to produce a
     bedfile that can be used with `aligator annoate`
 
-Usage: IMGThtmlParser.py IMGTREFNAME OUTPUTBED [--pseudo] [--fasta=FASTA]
+Usage: IMGThtmlParser.py IMGTREFNAME OUTPUTBED [--local=HTML] [--pseudo] [--fasta=FASTA]
 
 Arguments:
 	IMGTREFNAME     - IMGT Reference name
 	OUTPUTBED       - output bed file
 
 Options:	
+	--local=HTML    - local/downloaded HTML file from IMGT since they are blocking 
+	                      direct connections to the website
 	--pseudo        - optional flag to include pseudogenes
 	--fasta=FASTA   - optional file to include fasta sequence
 
@@ -23,6 +25,8 @@ Included optional fasta sequence S Olubo 2025-02-24
 Changed command line arguments to include output bed file S Olubo 2025-02-24
 Overrode IMGT fasta def line to prevent mismatches with bed file
      and a few other minor fixes by CA Schramm 2025-02-25.
+Added local option for downloaded HTML data because IMGT are petty
+     by CA Schramm 2025-12-01.
 
 Copyright (c) 2023-2025 Vaccine Research Center, National Institutes of Health, USA.
 All rights reserved.
@@ -38,9 +42,12 @@ from bs4 import BeautifulSoup
 
 def main():
 	# Fetch and parse page content
-	url = f"https://imgt.org/ligmdb/view.action?id={arguments['IMGTREFNAME']}"
-	page = requests.get(url)
-	soup = BeautifulSoup(page.content, "html.parser")
+	if arguments['--local'] is not None:
+		page = open(arguments['--local'], 'r').read()
+	else:
+		url = f"https://imgt.org/ligmdb/view.action?id={arguments['IMGTREFNAME']}"
+		page = requests.get(url).content
+	soup = BeautifulSoup(page, "html.parser")
 
 	# Initialize variables and lists for tracking gene features
 	inGeneVDJ = False

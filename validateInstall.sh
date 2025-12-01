@@ -5,7 +5,7 @@ python $ALIGATOR_PATH/aligator extract BK063715 validate.bed
 if cmp --silent "$ALIGATOR_PATH/sample_data/IGH/BK063715.bed" "validate.bed"; then
   echo "aligator extract validated successfully"
 else
-  echo "possible issue with aligator extract"
+  echo "Possible issue with aligator extract, likely due to IMGT interference. Please try manual verification with the --local option"
 fi
 
 
